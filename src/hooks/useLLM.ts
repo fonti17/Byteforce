@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { llmService, LLMServiceError } from '../services/llmService';
 import type { LLMMessage, LLMRequestOptions, LLMResponse } from '../types/llm';
 
@@ -8,15 +8,43 @@ export function useLLM() {
   const [data, setData] = useState<LLMResponse | null>(null);
   const [streamedText, setStreamedText] = useState<string>('');
 
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  const abort = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+  }, []);
+
+  // Cleanup abort controller on component unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
   const sendPrompt = useCallback(
     async (promptText: string, options?: LLMRequestOptions): Promise<LLMResponse | null> => {
+      abort();
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
       setLoading(true);
       setError(null);
       try {
-        const response = await llmService.prompt(promptText, options);
+        const response = await llmService.prompt(promptText, {
+          ...options,
+          signal: options?.signal ?? controller.signal,
+        });
         setData(response);
         return response;
       } catch (err) {
+        if (err instanceof LLMServiceError && err.status === 0) {
+          return null;
+        }
         const serviceError =
           err instanceof Error ? err : new Error('Unknown error during LLM call');
         setError(serviceError);
@@ -25,18 +53,28 @@ export function useLLM() {
         setLoading(false);
       }
     },
-    []
+    [abort]
   );
 
   const sendChat = useCallback(
     async (messages: LLMMessage[], options?: LLMRequestOptions): Promise<LLMResponse | null> => {
+      abort();
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
       setLoading(true);
       setError(null);
       try {
-        const response = await llmService.chat(messages, options);
+        const response = await llmService.chat(messages, {
+          ...options,
+          signal: options?.signal ?? controller.signal,
+        });
         setData(response);
         return response;
       } catch (err) {
+        if (err instanceof LLMServiceError && err.status === 0) {
+          return null;
+        }
         const serviceError =
           err instanceof Error ? err : new Error('Unknown error during LLM call');
         setError(serviceError);
@@ -45,22 +83,29 @@ export function useLLM() {
         setLoading(false);
       }
     },
-    []
+    [abort]
   );
 
-  const streamPrompt = useCallback(
+  const streamChat = useCallback(
     async (
-      promptText: string,
+      messages: LLMMessage[],
       options?: LLMRequestOptions,
       onChunk?: (delta: string, accumulated: string) => void
     ): Promise<string | null> => {
+      abort();
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
       setLoading(true);
       setError(null);
       setStreamedText('');
       let accumulated = '';
 
       try {
-        const generator = llmService.streamChat([{ role: 'user', content: promptText }], options);
+        const generator = llmService.streamChat(messages, {
+          ...options,
+          signal: options?.signal ?? controller.signal,
+        });
         for await (const chunk of generator) {
           accumulated += chunk.delta;
           setStreamedText(accumulated);
@@ -69,6 +114,9 @@ export function useLLM() {
         setData({ content: accumulated });
         return accumulated;
       } catch (err) {
+        if (err instanceof LLMServiceError && err.status === 0) {
+          return null;
+        }
         const serviceError =
           err instanceof Error ? err : new Error('Unknown error during LLM streaming');
         setError(serviceError);
@@ -77,15 +125,16 @@ export function useLLM() {
         setLoading(false);
       }
     },
-    []
+    [abort]
   );
 
   const reset = useCallback(() => {
+    abort();
     setLoading(false);
     setError(null);
     setData(null);
     setStreamedText('');
-  }, []);
+  }, [abort]);
 
   return {
     loading,
@@ -94,7 +143,8 @@ export function useLLM() {
     streamedText,
     sendPrompt,
     sendChat,
-    streamPrompt,
+    streamChat,
+    abort,
     reset,
   };
 }

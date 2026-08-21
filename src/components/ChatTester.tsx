@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, type KeyboardEvent } from 'react';
-import { llmService, LLMServiceError } from '../services/llmService';
+import { useLLM } from '../hooks/useLLM';
 import type { ApertusModelId, LLMMessage } from '../types/llm';
 import './ChatTester.css';
 
@@ -23,24 +23,19 @@ export function ChatTester() {
   const [systemPrompt, setSystemPrompt] = useState<string>('You are a helpful and concise AI assistant.');
   const [isStreaming, setIsStreaming] = useState<boolean>(true);
   const [inputPrompt, setInputPrompt] = useState<string>('');
-  
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [currentStreamingText, setCurrentStreamingText] = useState<string>('');
-  const [error, setError] = useState<string | null>(null);
 
+  const { loading, error, streamedText, sendChat, streamChat, abort, reset } = useLLM();
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll on new message or stream chunk
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, currentStreamingText, loading]);
+  }, [messages, streamedText, loading]);
 
   const handleSend = async () => {
     const promptText = inputPrompt.trim();
     if (!promptText || loading) return;
 
-    setError(null);
     setInputPrompt('');
 
     const userMessage: DisplayMessage = {
@@ -51,76 +46,51 @@ export function ChatTester() {
 
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
-    setLoading(true);
-    setCurrentStreamingText('');
 
     const startTime = performance.now();
-
-    // Prepare API history
     const apiMessages: LLMMessage[] = newMessages.map((m) => ({
       role: m.role,
       content: m.content,
     }));
 
-    try {
-      if (isStreaming) {
-        let accumulated = '';
-        const generator = llmService.streamChat(apiMessages, {
-          model,
-          maxTokens,
-          temperature,
-          systemPrompt: systemPrompt.trim() || undefined,
-        });
+    const options = {
+      model,
+      maxTokens,
+      temperature,
+      systemPrompt: systemPrompt.trim() || undefined,
+    };
 
-        for await (const chunk of generator) {
-          accumulated += chunk.delta;
-          setCurrentStreamingText(accumulated);
-        }
-
+    if (isStreaming) {
+      const responseText = await streamChat(apiMessages, options);
+      if (responseText !== null) {
         const durationMs = Math.round(performance.now() - startTime);
-
-        const assistantMessage: DisplayMessage = {
-          id: crypto.randomUUID(),
-          role: 'assistant',
-          content: accumulated,
-          model,
-          durationMs,
-        };
-
-        setMessages((prev) => [...prev, assistantMessage]);
-        setCurrentStreamingText('');
-      } else {
-        const response = await llmService.chat(apiMessages, {
-          model,
-          maxTokens,
-          temperature,
-          systemPrompt: systemPrompt.trim() || undefined,
-        });
-
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            role: 'assistant',
+            content: responseText,
+            model,
+            durationMs,
+          },
+        ]);
+      }
+    } else {
+      const response = await sendChat(apiMessages, options);
+      if (response) {
         const durationMs = Math.round(performance.now() - startTime);
-
-        const assistantMessage: DisplayMessage = {
-          id: crypto.randomUUID(),
-          role: 'assistant',
-          content: response.content,
-          model: response.model || model,
-          tokens: response.usage,
-          durationMs,
-        };
-
-        setMessages((prev) => [...prev, assistantMessage]);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            role: 'assistant',
+            content: response.content,
+            model: response.model || model,
+            tokens: response.usage,
+            durationMs,
+          },
+        ]);
       }
-    } catch (err) {
-      if (err instanceof LLMServiceError) {
-        setError(`[Status ${err.status ?? 'Error'}]: ${err.message}`);
-      } else if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError('An unexpected error occurred.');
-      }
-    } finally {
-      setLoading(false);
-      setCurrentStreamingText('');
     }
   };
 
@@ -133,8 +103,7 @@ export function ChatTester() {
 
   const handleClear = () => {
     setMessages([]);
-    setError(null);
-    setCurrentStreamingText('');
+    reset();
   };
 
   return (
@@ -149,8 +118,9 @@ export function ChatTester() {
 
           <div className="chat-controls-grid">
             <div className="control-group">
-              <label>Model</label>
+              <label htmlFor="model-select">Model</label>
               <select
+                id="model-select"
                 className="control-select"
                 value={model}
                 onChange={(e) => setModel(e.target.value as ApertusModelId)}
@@ -162,8 +132,9 @@ export function ChatTester() {
             </div>
 
             <div className="control-group">
-              <label>Max Tokens</label>
+              <label htmlFor="max-tokens-input">Max Tokens</label>
               <input
+                id="max-tokens-input"
                 type="number"
                 className="control-input"
                 style={{ width: '90px' }}
@@ -177,8 +148,9 @@ export function ChatTester() {
             </div>
 
             <div className="control-group">
-              <label>Temperature: {temperature}</label>
+              <label htmlFor="temp-slider">Temperature: {temperature}</label>
               <input
+                id="temp-slider"
                 type="range"
                 min={0}
                 max={1.5}
@@ -203,10 +175,11 @@ export function ChatTester() {
 
         {/* System Prompt Bar */}
         <div className="system-prompt-bar">
-          <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text)' }}>
+          <label htmlFor="system-prompt-input" style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text)' }}>
             System:
           </label>
           <input
+            id="system-prompt-input"
             type="text"
             placeholder="System prompt (optional)..."
             value={systemPrompt}
@@ -249,21 +222,21 @@ export function ChatTester() {
           ))}
 
           {/* Currently Streaming Response Bubble */}
-          {loading && currentStreamingText && (
+          {loading && streamedText && (
             <div className="message-bubble message-assistant">
               <div className="message-header">
                 <span className="message-role">Apertus ({model})</span>
                 <span className="message-meta">Streaming...</span>
               </div>
               <div className="message-content">
-                {currentStreamingText}
+                {streamedText}
                 <span className="streaming-cursor" />
               </div>
             </div>
           )}
 
           {/* Loading placeholder when awaiting first chunk */}
-          {loading && !currentStreamingText && (
+          {loading && !streamedText && (
             <div className="message-bubble message-assistant">
               <div className="message-header">
                 <span className="message-role">Apertus ({model})</span>
@@ -278,7 +251,7 @@ export function ChatTester() {
         </div>
 
         {/* Error Notification */}
-        {error && <div className="chat-error">{error}</div>}
+        {error && <div className="chat-error">{error.message}</div>}
 
         {/* Input Controls */}
         <div className="chat-input-area">
@@ -293,14 +266,25 @@ export function ChatTester() {
               rows={2}
             />
             <div className="chat-buttons">
-              <button
-                type="button"
-                className="btn-send"
-                onClick={handleSend}
-                disabled={loading || !inputPrompt.trim()}
-              >
-                {loading ? 'Sending...' : 'Send'}
-              </button>
+              {loading ? (
+                <button
+                  type="button"
+                  className="btn-send btn-stop"
+                  onClick={abort}
+                  style={{ background: '#ef4444' }}
+                >
+                  Stop
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn-send"
+                  onClick={handleSend}
+                  disabled={!inputPrompt.trim()}
+                >
+                  Send
+                </button>
+              )}
             </div>
           </div>
 
