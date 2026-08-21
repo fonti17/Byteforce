@@ -27,27 +27,25 @@ interface ModelConfig {
 
 const APERTUS_CONFIGS = {
   '8b': {
-    modelName: import.meta.env.VITE_APERTUS_8B_MODEL || 'apertus-ai/Apertus-v1.5-8B',
+    modelName: import.meta.env.VITE_APERTUS_8B_MODEL ,
     directEndpoint:
-      import.meta.env.VITE_APERTUS_8B_ENDPOINT ||
-      'https://llm.stoney-cloud.com/v1/chat/completions',
+      import.meta.env.VITE_APERTUS_8B_ENDPOINT ,
     proxyEndpoint: '/api/stoney/v1/chat/completions',
     apiKey:
-      import.meta.env.VITE_APERTUS_8B_KEY || 'sk-ffb52b61-5009-4bf8-94d6-f5a8f4a8a735',
+      import.meta.env.VITE_APERTUS_8B_KEY ,
   },
   '70b': {
-    modelName: import.meta.env.VITE_APERTUS_70B_MODEL || 'apertus-v1.5-70b',
+    modelName: import.meta.env.VITE_APERTUS_70B_MODEL ,
     directEndpoint:
-      import.meta.env.VITE_APERTUS_70B_ENDPOINT ||
-      'https://llm-api2.b.onprem.ai/openai/v1/chat/completions',
+      import.meta.env.VITE_APERTUS_70B_ENDPOINT ,
     proxyEndpoint: '/api/onprem/openai/v1/chat/completions',
     apiKey:
-      import.meta.env.VITE_APERTUS_70B_KEY || 'sk-fyoD3RZU1Di6nwEAo9XJ2BbIpVQqANSC',
+      import.meta.env.VITE_APERTUS_70B_KEY ,
   },
 };
 
 function resolveModelConfig(model?: LLMModel): ModelConfig {
-  const selected = model || import.meta.env.VITE_DEFAULT_LLM_MODEL || 'apertus-70b';
+  const selected = model || import.meta.env.VITE_DEFAULT_LLM_MODEL ;
 
   if (selected === 'apertus-8b' || selected === 'apertus-ai/Apertus-v1.5-8B' || selected === '8b') {
     return APERTUS_CONFIGS['8b'];
