@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { cateringPlanService } from '../services/cateringPlanService';
 import { gatheringService } from '../services/gatheringService';
 import type { GatheringState } from '../types/gathering';
 import type { ApertusModelId } from '../types/llm';
@@ -21,6 +22,8 @@ export function ChatTester() {
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [gatheringState, setGatheringState] = useState<GatheringState>(() => gatheringService.createState());
   const [loading, setLoading] = useState(false);
+  const [loadingLabel, setLoadingLabel] = useState('Angaben werden geprüft...');
+  const [finished, setFinished] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -30,7 +33,7 @@ export function ChatTester() {
 
   const handleSend = async () => {
     const promptText = inputPrompt.trim();
-    if (!promptText || loading) return;
+    if (!promptText || loading || finished) return;
 
     setError(null);
     setInputPrompt('');
@@ -39,6 +42,7 @@ export function ChatTester() {
       { id: crypto.randomUUID(), role: 'user', content: promptText },
     ]);
     setLoading(true);
+    setLoadingLabel('Angaben werden geprüft...');
     const startTime = performance.now();
 
     try {
@@ -53,6 +57,40 @@ export function ChatTester() {
         messages: turn.messages,
         expectedField: turn.expectedField,
       });
+      if (turn.status === 'complete') {
+        setMessages((previous) => [
+          ...previous,
+          {
+            id: crypto.randomUUID(),
+            role: 'assistant',
+            content: 'Part 1 ist vollständig.\n\nFertiger State:\n' + JSON.stringify(turn.data, null, 2),
+            model: turn.response.model || model,
+            tokens: turn.response.usage,
+            durationMs: Math.round(performance.now() - startTime),
+          },
+        ]);
+
+        setLoadingLabel('Menü und Einkaufsliste werden erstellt...');
+        const planningStartedAt = performance.now();
+        const planResponse = await cateringPlanService.create(turn.data, {
+          model,
+          temperature: 0.2,
+          maxTokens: 1800,
+        });
+        setMessages((previous) => [
+          ...previous,
+          {
+            id: crypto.randomUUID(),
+            role: 'assistant',
+            content: planResponse.content,
+            model: planResponse.model || model,
+            tokens: planResponse.usage,
+            durationMs: Math.round(performance.now() - planningStartedAt),
+          },
+        ]);
+        setFinished(true);
+        return;
+      }
       setMessages((previous) => [
         ...previous,
         {
@@ -83,6 +121,7 @@ export function ChatTester() {
   const handleClear = () => {
     setMessages([]);
     setGatheringState(gatheringService.createState());
+    setFinished(false);
     setError(null);
   };
 
@@ -130,7 +169,7 @@ export function ChatTester() {
           {loading && (
             <div className="message-bubble message-assistant">
               <div className="message-header"><span className="message-role">Catering-Assistent ({model})</span></div>
-              <div className="message-content"><em>Angaben werden geprüft...</em></div>
+              <div className="message-content"><em>{loadingLabel}</em></div>
             </div>
           )}
           <div ref={chatEndRef} />
@@ -140,9 +179,9 @@ export function ChatTester() {
 
         <div className="chat-input-area">
           <div className="chat-input-row">
-            <textarea className="chat-textarea" placeholder="Beschreiben Sie Ihren Anlass … (Enter zum Senden, Shift+Enter für Zeilenumbruch)" value={inputPrompt} onChange={(event) => setInputPrompt(event.target.value)} onKeyDown={handleKeyDown} disabled={loading} rows={2} />
+            <textarea className="chat-textarea" placeholder={finished ? 'Planung abgeschlossen – setzen Sie die Erfassung für einen neuen Anlass zurück.' : 'Beschreiben Sie Ihren Anlass … (Enter zum Senden, Shift+Enter für Zeilenumbruch)'} value={inputPrompt} onChange={(event) => setInputPrompt(event.target.value)} onKeyDown={handleKeyDown} disabled={loading || finished} rows={2} />
             <div className="chat-buttons">
-              <button type="button" className="btn-send" onClick={() => void handleSend()} disabled={loading || !inputPrompt.trim()}>{loading ? 'Wird verarbeitet…' : 'Senden'}</button>
+              <button type="button" className="btn-send" onClick={() => void handleSend()} disabled={loading || finished || !inputPrompt.trim()}>{loading ? 'Wird verarbeitet…' : 'Senden'}</button>
             </div>
           </div>
           {messages.length > 0 && <button type="button" className="btn-clear" onClick={handleClear} disabled={loading}>Erfassung zurücksetzen</button>}
