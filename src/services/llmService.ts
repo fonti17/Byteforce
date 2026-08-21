@@ -27,25 +27,25 @@ interface ModelConfig {
 
 const APERTUS_CONFIGS = {
   '8b': {
-    modelName: import.meta.env.VITE_APERTUS_8B_MODEL ,
+    modelName: import.meta.env.VITE_APERTUS_8B_MODEL || 'apertus-ai/Apertus-v1.5-8B',
     directEndpoint:
-      import.meta.env.VITE_APERTUS_8B_ENDPOINT ,
+      import.meta.env.VITE_APERTUS_8B_ENDPOINT ||
+      'https://llm.stoney-cloud.com/v1/chat/completions',
     proxyEndpoint: '/api/stoney/v1/chat/completions',
-    apiKey:
-      import.meta.env.VITE_APERTUS_8B_KEY ,
+    apiKey: import.meta.env.VITE_APERTUS_8B_KEY || '',
   },
   '70b': {
-    modelName: import.meta.env.VITE_APERTUS_70B_MODEL ,
+    modelName: import.meta.env.VITE_APERTUS_70B_MODEL || 'apertus-v1.5-70b',
     directEndpoint:
-      import.meta.env.VITE_APERTUS_70B_ENDPOINT ,
+      import.meta.env.VITE_APERTUS_70B_ENDPOINT ||
+      'https://llm-api2.b.onprem.ai/openai/v1/chat/completions',
     proxyEndpoint: '/api/onprem/openai/v1/chat/completions',
-    apiKey:
-      import.meta.env.VITE_APERTUS_70B_KEY ,
+    apiKey: import.meta.env.VITE_APERTUS_70B_KEY || '',
   },
 };
 
 function resolveModelConfig(model?: LLMModel): ModelConfig {
-  const selected = model || import.meta.env.VITE_DEFAULT_LLM_MODEL ;
+  const selected = model || import.meta.env.VITE_DEFAULT_LLM_MODEL || 'apertus-70b';
 
   if (selected === 'apertus-8b' || selected === 'apertus-ai/Apertus-v1.5-8B' || selected === '8b') {
     return APERTUS_CONFIGS['8b'];
@@ -56,7 +56,7 @@ function resolveModelConfig(model?: LLMModel): ModelConfig {
 }
 
 function resolveEndpoint(config: ModelConfig, useProxyOption?: boolean): string {
-  // Use proxy in dev mode by default to bypass browser CORS constraints
+  // Use dev proxy when running in Vite dev server to bypass browser CORS preflight restrictions
   const preferProxy =
     useProxyOption ??
     (import.meta.env.DEV && import.meta.env.VITE_USE_PROXY !== 'false');
@@ -66,7 +66,7 @@ function resolveEndpoint(config: ModelConfig, useProxyOption?: boolean): string 
 
 export const llmService = {
   /**
-   * Helper to build request headers
+   * Build request headers with Bearer token authentication
    */
   getHeaders(apiKey: string, customHeaders?: Record<string, string>): Record<string, string> {
     const headers: Record<string, string> = {
@@ -97,6 +97,13 @@ export const llmService = {
     } = options;
 
     const config = resolveModelConfig(model);
+
+    if (!config.apiKey) {
+      throw new LLMServiceError(
+        `API key is missing for model '${config.modelName}'. Please configure it in your .env.local file.`
+      );
+    }
+
     const endpoint = resolveEndpoint(config, useProxy);
 
     const formattedMessages: LLMMessage[] = [];
@@ -153,6 +160,9 @@ export const llmService = {
       if (error instanceof LLMServiceError) {
         throw error;
       }
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        throw new LLMServiceError('Request was aborted.', 0);
+      }
       throw new LLMServiceError(
         error instanceof Error ? error.message : 'Unknown LLM service error'
       );
@@ -185,6 +195,13 @@ export const llmService = {
     } = options;
 
     const config = resolveModelConfig(model);
+
+    if (!config.apiKey) {
+      throw new LLMServiceError(
+        `API key is missing for model '${config.modelName}'. Please configure it in your .env.local file.`
+      );
+    }
+
     const endpoint = resolveEndpoint(config, useProxy);
 
     const formattedMessages: LLMMessage[] = [];
@@ -202,17 +219,34 @@ export const llmService = {
       ...extraBody,
     };
 
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: this.getHeaders(config.apiKey, customHeaders),
-      body: JSON.stringify(payload),
-      signal,
-    });
+    let response: Response;
+    try {
+      response = await fetch(endpoint, {
+        method: 'POST',
+        headers: this.getHeaders(config.apiKey, customHeaders),
+        body: JSON.stringify(payload),
+        signal,
+      });
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        throw new LLMServiceError('Request was aborted.', 0);
+      }
+      throw new LLMServiceError(
+        error instanceof Error ? error.message : 'Failed to connect to LLM stream.'
+      );
+    }
 
     if (!response.ok || !response.body) {
+      let errorData: unknown;
+      try {
+        errorData = await response.json();
+      } catch {
+        errorData = await response.text();
+      }
       throw new LLMServiceError(
         `Streaming request failed with status ${response.status}`,
-        response.status
+        response.status,
+        errorData
       );
     }
 
@@ -242,7 +276,7 @@ export const llmService = {
                 yield { delta, raw: parsed };
               }
             } catch {
-              // Non-JSON SSE event or raw chunk
+              // Non-JSON SSE line or keepalive ping
             }
           }
         }
