@@ -1,212 +1,70 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Event Catering Information",
-  "description": "Structured information required to plan food and beverage for an event.",
+  "title": "Catering Information Gathering - Part 1",
+  "description": "Minimum information required before continuing to detailed catering preferences.",
   "type": "object",
   "required": [
-    "event",
-    "participants",
-    "catering",
+    "eventType",
+    "date",
+    "participantCount",
+    "meal",
     "budget"
   ],
   "properties": {
-    "event": {
-      "type": "object",
-      "description": "Basic information about the event.",
-      "required": [
-        "type",
-        "date"
-      ],
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type or occasion of the event.",
-          "enum": [
-            "private",
-            "business",
-            "club",
-            "organization",
-            "birthday",
-            "wedding",
-            "anniversary",
-            "company_event",
-            "other"
-          ]
-        },
-        "date": {
-          "type": "string",
-          "format": "date",
-          "description": "Date of the event. Used, among other things, to determine seasonality."
-        },
-        "time": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
-          "description": "Approximate start time of the event."
-        }
-      },
-      "additionalProperties": false
+    "eventType": {
+      "type": "string",
+      "enum": [
+        "private",
+        "business",
+        "team_event",
+        "other"
+      ]
     },
-    "participants": {
+    "date": {
       "type": "object",
-      "description": "Information about the people attending the event.",
       "required": [
-        "count"
+        "day",
+        "month"
       ],
       "properties": {
-        "count": {
+        "day": {
           "type": "integer",
           "minimum": 1,
-          "description": "Number of people attending the event."
+          "maximum": 31
+        },
+        "month": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12
+        },
+        "year": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
         }
       },
       "additionalProperties": false
     },
-    "catering": {
-      "type": "object",
-      "description": "Food and beverage requirements.",
-      "required": [
-        "meal"
-      ],
-      "properties": {
-        "meal": {
-          "type": "string",
-          "description": "Main type of food occasion.",
-          "enum": [
-            "breakfast",
-            "brunch",
-            "coffee",
-            "aperitif",
-            "lunch",
-            "dinner",
-            "snack",
-            "multiple",
-            "other"
-          ]
-        },
-        "serviceStyle": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "How the food should be served.",
-          "enum": [
-            "plated",
-            "buffet",
-            "finger_food",
-            "flying",
-            "self_service",
-            "unknown",
-            null
-          ]
-        },
-        "food": {
-          "type": "object",
-          "properties": {
-            "cuisine": {
-              "type": [
-                "string",
-                "null"
-              ],
-              "description": "Preferred cuisine or culinary style."
-            },
-            "dietaryRequirements": {
-              "type": "array",
-              "description": "Dietary requirements of the participants.",
-              "items": {
-                "type": "object",
-                "required": [
-                  "type"
-                ],
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "enum": [
-                      "vegetarian",
-                      "vegan",
-                      "gluten_free",
-                      "lactose_free",
-                      "halal",
-                      "kosher",
-                      "other"
-                    ]
-                  },
-                  "count": {
-                    "type": [
-                      "integer",
-                      "null"
-                    ],
-                    "minimum": 1
-                  }
-                },
-                "additionalProperties": false
-              }
-            },
-            "allergies": {
-              "type": "array",
-              "description": "Known food allergies.",
-              "items": {
-                "type": "string"
-              }
-            },
-            "exclusions": {
-              "type": "array",
-              "description": "Foods or ingredients that should be avoided.",
-              "items": {
-                "type": "string"
-              }
-            }
-          },
-          "additionalProperties": false
-        },
-        "beverages": {
-          "type": "object",
-          "properties": {
-            "required": {
-              "type": [
-                "boolean",
-                "null"
-              ]
-            },
-            "types": {
-              "type": "array",
-              "items": {
-                "type": "string",
-                "enum": [
-                  "water",
-                  "coffee",
-                  "tea",
-                  "soft_drinks",
-                  "juice",
-                  "beer",
-                  "wine",
-                  "spirits",
-                  "cocktails",
-                  "other"
-                ]
-              }
-            },
-            "alcohol": {
-              "type": [
-                "boolean",
-                "null"
-              ]
-            }
-          },
-          "additionalProperties": false
-        }
-      },
-      "additionalProperties": false
+    "participantCount": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "meal": {
+      "type": "string",
+      "enum": [
+        "breakfast",
+        "lunch",
+        "dinner",
+        "other"
+      ]
     },
     "budget": {
       "type": "object",
-      "description": "Financial constraints for the catering.",
       "required": [
         "amount",
-        "currency",
-        "basis"
+        "currency"
       ],
       "properties": {
         "amount": {
@@ -215,69 +73,7 @@
         },
         "currency": {
           "type": "string",
-          "pattern": "^[A-Z]{3}$",
-          "description": "ISO 4217 currency code, e.g. CHF, EUR or USD."
-        },
-        "basis": {
-          "type": "string",
-          "enum": [
-            "total",
-            "per_person"
-          ]
-        },
-        "type": {
-          "type": "string",
-          "enum": [
-            "maximum",
-            "target"
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "business": {
-      "type": "object",
-      "description": "Additional requirements for business events.",
-      "properties": {
-        "minimumMargin": {
-          "type": [
-            "number",
-            "null"
-          ],
-          "minimum": 0,
-          "maximum": 1,
-          "description": "Minimum required profit margin expressed as a decimal. Example: 0.20 = 20%."
-        }
-      },
-      "additionalProperties": false
-    },
-    "preferences": {
-      "type": "object",
-      "description": "Additional preferences and free-form requirements.",
-      "properties": {
-        "specialRequests": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "cuisinePreferences": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "sustainability": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "enum": [
-            "low",
-            "medium",
-            "high",
-            null
-          ]
+          "pattern": "^[A-Z]{3}$"
         }
       },
       "additionalProperties": false
