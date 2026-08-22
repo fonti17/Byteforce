@@ -71,13 +71,6 @@ export function PlannerLanding({
     <div className="flex flex-col gap-6">
       {/* Prodega Easy Promotional Banner Style */}
       <div className="flex flex-col justify-center overflow-hidden rounded-lg bg-[#ed1b2f] p-5 text-white shadow-xs sm:p-6">
-        <div className="flex items-center gap-2 mb-2">
-          <ProdegaLogo className="h-5 w-auto" textColor="#FFFFFF" />
-          <span className="text-white/40 text-xs">|</span>
-          <span className="text-white/80 text-xs font-semibold uppercase tracking-wider">
-            Easy Planer
-          </span>
-        </div>
         <Typography.Heading level={1} className="text-xl sm:text-2xl font-bold tracking-tight text-white">
           {t.landingTitle}
         </Typography.Heading>
