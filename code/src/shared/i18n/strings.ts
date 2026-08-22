@@ -3,7 +3,8 @@ export type Language = 'de' | 'en';
 /** Copy for the three planner views, mirroring the DE/EN switch from the design. */
 export const strings = {
   de: {
-    brand: 'Catering Planer',
+    brand: 'Event in a Box',
+    backToStart: 'Zur Startseite',
     languageLabel: 'DE',
     back: 'Zurück',
     restart: 'Neu starten',
@@ -248,7 +249,8 @@ export const strings = {
       count === 1 ? '1 Projekt' : `${count} Projekte`,
   },
   en: {
-    brand: 'Catering Planner',
+    brand: 'Event in a Box',
+    backToStart: 'Back to start',
     languageLabel: 'EN',
     back: 'Back',
     restart: 'Start over',

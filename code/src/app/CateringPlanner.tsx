@@ -162,6 +162,7 @@ export function CateringPlanner() {
     setTargetMargin(null);
     setCurrentProjectId(null);
     setIsProjectSaved(false);
+    setReturnTrail([]);
     reset();
   }, [clearSelection, reset, resetPlan]);
 
@@ -299,11 +300,17 @@ export function CateringPlanner() {
     <div className="min-h-screen bg-white text-neutral-900 flex flex-col">
       <header className="sticky top-0 z-50 bg-[#f8f8f8] border-b border-neutral-200 shadow-xs">
         <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-          <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={handleRestart}
+            aria-label={t.backToStart}
+            title={t.backToStart}
+            className="flex items-center gap-3 rounded transition-opacity hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
             <ProdegaLogo className="h-7 w-auto" />
             <span className="text-neutral-300">|</span>
             <span className="text-sm font-bold tracking-tight text-neutral-800 uppercase">{t.brand}</span>
-          </div>
+          </button>
 
           <div className="flex items-center gap-2 sm:gap-3">
             {/* Private vs Business mode toggle switch */}
@@ -311,24 +318,32 @@ export function CateringPlanner() {
               <button
                 type="button"
                 onClick={() => setPlannerMode('private')}
-                className={`rounded px-2.5 py-1 transition-colors ${
+                aria-pressed={plannerMode === 'private'}
+                aria-label={t.modePrivate}
+                title={t.modePrivate}
+                className={`flex items-center gap-1.5 rounded px-2 py-1.5 transition-colors sm:px-2.5 sm:py-1 ${
                   plannerMode === 'private'
                     ? 'bg-primary text-white shadow-xs'
                     : 'text-neutral-600 hover:text-neutral-900'
                 }`}
               >
-                {t.modePrivate}
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"></path><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+                <span className="hidden sm:inline">{t.modePrivate}</span>
               </button>
               <button
                 type="button"
                 onClick={() => setPlannerMode('business')}
-                className={`rounded px-2.5 py-1 transition-colors ${
+                aria-pressed={plannerMode === 'business'}
+                aria-label={t.modeBusiness}
+                title={t.modeBusiness}
+                className={`flex items-center gap-1.5 rounded px-2 py-1.5 transition-colors sm:px-2.5 sm:py-1 ${
                   plannerMode === 'business'
                     ? 'bg-primary text-white shadow-xs'
                     : 'text-neutral-600 hover:text-neutral-900'
                 }`}
               >
-                {t.modeBusiness}
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path><rect width="20" height="14" x="2" y="6" rx="2"></rect></svg>
+                <span className="hidden sm:inline">{t.modeBusiness}</span>
               </button>
             </div>
 
