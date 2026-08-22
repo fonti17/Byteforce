@@ -40,8 +40,6 @@ interface PlannerLandingProps {
   onToggleRecipe: (id: string) => void;
   onOpenRecipe: (id: string) => void;
   onOpenRecipes: () => void;
-  /** Starts the plan from the recipe selection alone, without a written request. */
-  onStartWithRecipes: () => void;
 }
 
 /**
@@ -62,14 +60,15 @@ export function PlannerLanding({
   onToggleRecipe,
   onOpenRecipe,
   onOpenRecipes,
-  onStartWithRecipes,
 }: PlannerLandingProps) {
   const [message, setMessage] = useState('');
   const [targetMarginStr, setTargetMarginStr] = useState('');
   // The list starts short and expands in place, so picking a recipe further down
   // does not mean leaving the planner.
   const [isExpanded, setIsExpanded] = useState(false);
-  const canSubmit = message.trim().length > 0 && !isAnalysing;
+  const hasText = message.trim().length > 0;
+  const hasSelectedRecipes = selectedIds.length > 0;
+  const canSubmit = (hasText || hasSelectedRecipes) && !isAnalysing;
   const visible = isExpanded ? recipes : recipes.slice(0, VISIBLE_RECIPES);
   const hiddenCount = recipes.length - visible.length;
 
@@ -134,7 +133,7 @@ export function PlannerLanding({
             />
           </TextField>
         </Card.Content>
-        <Card.Footer className="justify-between gap-3 bg-neutral-50 px-4 py-3 border-t border-neutral-100 flex flex-wrap">
+        <Card.Footer className="justify-between gap-3 bg-neutral-50 px-4 py-3 border-t border-neutral-100 flex flex-wrap items-center">
           <Button
             variant="ghost"
             size="sm"
@@ -147,7 +146,7 @@ export function PlannerLanding({
           <Button
             isDisabled={!canSubmit}
             onPress={handleSubmit}
-            className="bg-primary text-white hover:bg-primary/90 rounded px-5 py-2 text-sm font-medium transition-colors shadow-xs disabled:opacity-50"
+            className="bg-primary text-white hover:bg-primary/90 rounded px-6 py-2 text-sm font-semibold transition-colors shadow-xs disabled:opacity-50"
           >
             {isAnalysing ? <Spinner size="sm" /> : null}
             {isAnalysing ? t.analysing : t.analyse}
@@ -263,23 +262,6 @@ export function PlannerLanding({
               </span>
             </div>
           </label>
-        ) : null}
-
-        {/* Picked dishes are enough to start: the question walk asks for the rest. */}
-        {selectedIds.length > 0 ? (
-          <div className="flex flex-col items-stretch gap-2">
-            <Button
-              fullWidth
-              isDisabled={isAnalysing}
-              onPress={onStartWithRecipes}
-              className="bg-primary text-white hover:bg-primary/90 rounded px-4 py-2.5 text-sm font-semibold transition-colors shadow-xs"
-            >
-              {t.recipeStartWith(selectedIds.length)}
-            </Button>
-            <Typography.Paragraph size="sm" className="mx-auto text-xs text-neutral-500">
-              {t.recipeStartHint}
-            </Typography.Paragraph>
-          </div>
         ) : null}
       </section>
 
