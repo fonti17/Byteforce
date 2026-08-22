@@ -1,9 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { cateringPlanService } from '../services/cateringPlanService';
 import { priceService } from '../services/priceService';
-import type { CateringPlanOptions, PricedCateringPlan } from '../types/cateringPlan';
+import type {
+  CateringPlan,
+  CateringPlanInput,
+  CateringPlanOptions,
+  PricedCateringPlan,
+} from '../types/cateringPlan';
 import { buildPlanFromRecipes } from '../services/recipeService';
-import type { CateringPlan, CateringPlanInput, CateringPlanOptions } from '../types/cateringPlan';
 import type { GatheringResult } from '../types/gathering';
 
 /** Which side produced the plan currently on screen. */
@@ -30,30 +34,38 @@ export function useCateringPlan(options: CateringPlanOptions = {}) {
   // A second call while a request is still open must not fire another request.
   const pendingRef = useRef(false);
 
-  const generate = useCallback(async (result: GatheringResult): Promise<PricedCateringPlan | null> => {
+  const generate = useCallback(async (
+    input: GatheringResult | CateringPlanInput
+  ): Promise<PricedCateringPlan | null> => {
     if (pendingRef.current) return null;
     pendingRef.current = true;
     setIsPlanning(true);
     setError(null);
     setStreamedText('');
     try {
-      const turn = await cateringPlanService.plan(result, optionsRef.current);
-      const pricedPlan = await priceService.enrich(turn.plan);
+      const gatheringResult = ('gatheringState' in input
+        ? input.gatheringState
+        : input) as GatheringResult;
+      const recipes = optionsRef.current.recipes ?? [];
+      let basePlan: CateringPlan;
+      let planSource: PlanSource = 'model';
+
+      try {
+        const turn = await cateringPlanService.plan(input, optionsRef.current);
+        basePlan = turn.plan;
+      } catch (planningError) {
+        // Recipe quantities are deterministic, so they can still form the plan
+        // when Apertus is unavailable. Pricing happens once after this branch.
+        if (recipes.length === 0) throw planningError;
+        basePlan = buildPlanFromRecipes(recipes, gatheringResult);
+        planSource = 'local';
+      }
+
+      const pricedPlan = await priceService.enrich(basePlan);
       setPlan(pricedPlan);
+      setSource(planSource);
       return pricedPlan;
     } catch (caught) {
-      // Chosen recipes already carry the menu and the quantities, so an
-      // unreachable model costs the cost estimate, not the shopping list.
-      const recipes = optionsRef.current.recipes ?? [];
-      if (recipes.length > 0) {
-        const gatheringResult = ('gatheringState' in result
-          ? result.gatheringState
-          : result) as GatheringResult;
-        const local = buildPlanFromRecipes(recipes, gatheringResult);
-        setPlan(local);
-        setSource('local');
-        return local;
-      }
       setError(caught instanceof Error ? caught : new Error('Planning failed'));
       return null;
     } finally {
