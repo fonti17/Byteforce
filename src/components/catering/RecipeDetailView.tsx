@@ -1,0 +1,248 @@
+import { useRef, useState } from 'react';
+import {
+  Alert,
+  Button,
+  Card,
+  Chip,
+  CircleDashedIcon,
+  IconChevronLeft,
+  SuccessIcon,
+  Typography,
+} from '@heroui/react';
+import { scaleRecipe } from '../../services/recipeService';
+import type { Recipe, StoredRecipe } from '../../types/recipe';
+import { RecipeEditor } from './RecipeEditor';
+import type { Language, Strings } from './strings';
+
+interface RecipeDetailViewProps {
+  t: Strings;
+  language: Language;
+  record: StoredRecipe;
+  /** Known once part 1 has a participant count — drives the scaling preview. */
+  participantCount: number | null;
+  isSelected: boolean;
+  onToggleSelected: () => void;
+  onSave: (recipe: Recipe) => void;
+  onDelete: () => void;
+  /** Opens the recipe screen, where a new recipe is pasted or typed. */
+  onAddNew: () => void;
+  /** Reads a recipe or a library file; resolves with how many were added. */
+  onUpload: (raw: string) => Promise<number>;
+  onBack: () => void;
+}
+
+/**
+ * Detail screen for one stored recipe: the full recipe as
+ * `config/recipeConfig.json` describes it, with the quantities this event would
+ * actually buy, plus edit, add, download, and upload.
+ */
+export function RecipeDetailView({
+  t,
+  language,
+  record,
+  participantCount,
+  isSelected,
+  onToggleSelected,
+  onSave,
+  onDelete,
+  onAddNew,
+  onUpload,
+  onBack,
+}: RecipeDetailViewProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [notice, setNotice] = useState<{ text: string; isError: boolean } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { recipe } = record;
+
+  // Preview the quantities the plan will buy, not the ones written down.
+  const scaled = participantCount ? scaleRecipe(recipe, participantCount) : null;
+  const ingredients = scaled ?? recipe.ingredients;
+
+  const download = () => {
+    const url = URL.createObjectURL(
+      new Blob([JSON.stringify(recipe, null, 2)], { type: 'application/json' })
+    );
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${slugify(recipe.name)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const upload = async (file: File) => {
+    setNotice(null);
+    try {
+      const count = await onUpload(await file.text());
+      setNotice({ text: t.recipeImported(count), isError: false });
+    } catch {
+      setNotice({ text: t.recipeImportError, isError: true });
+    }
+  };
+
+  const save = (next: Recipe) => {
+    onSave(next);
+    setIsEditing(false);
+    setNotice({ text: t.recipeSaved, isError: false });
+  };
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-2">
+        <Button variant="ghost" size="sm" className="-ml-3 w-fit text-muted" onPress={onBack}>
+          <IconChevronLeft />
+          {t.back}
+        </Button>
+        <Typography.Heading level={1} className="text-2xl font-bold tracking-tight text-balance">
+          {recipe.name}
+        </Typography.Heading>
+        <Typography.Paragraph className="text-muted">
+          {`${t.recipeServings(recipe.servings)} · ${t.recipeIngredients(recipe.ingredients.length)}`}
+        </Typography.Paragraph>
+      </div>
+
+      {notice ? (
+        <Alert status={notice.isError ? 'danger' : 'success'}>
+          <Alert.Indicator />
+          <Alert.Content>
+            <Alert.Description>{notice.text}</Alert.Description>
+          </Alert.Content>
+        </Alert>
+      ) : null}
+
+      <Button
+        variant={isSelected ? 'primary' : 'outline'}
+        fullWidth
+        onPress={onToggleSelected}
+      >
+        {isSelected ? (
+          <SuccessIcon className="size-4" />
+        ) : (
+          <CircleDashedIcon className="size-4" />
+        )}
+        {isSelected ? t.recipeInUse : t.recipeUse}
+      </Button>
+
+      <div className="flex flex-wrap gap-2">
+        <Button variant="outline" onPress={() => setIsEditing((editing) => !editing)}>
+          {isEditing ? t.recipeCancel : t.recipeEdit}
+        </Button>
+        <Button variant="outline" onPress={onAddNew}>
+          {t.recipeNew}
+        </Button>
+        <Button variant="outline" onPress={download}>
+          {t.recipeDownload}
+        </Button>
+        <Button variant="outline" onPress={() => fileInputRef.current?.click()}>
+          {t.recipeUpload}
+        </Button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="application/json,.json"
+          className="hidden"
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            if (file) void upload(file);
+            event.target.value = '';
+          }}
+        />
+      </div>
+
+      {isEditing ? (
+        <Card>
+          <Card.Content>
+            <RecipeEditor
+              t={t}
+              recipe={recipe}
+              onSave={save}
+              onCancel={() => setIsEditing(false)}
+            />
+          </Card.Content>
+        </Card>
+      ) : (
+        <>
+          {recipe.course || recipe.diet.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {recipe.course ? (
+                <Chip variant="soft" size="sm">
+                  <Chip.Label>{t.course[recipe.course]}</Chip.Label>
+                </Chip>
+              ) : null}
+              {recipe.diet.map((diet) => (
+                <Chip key={diet} variant="soft" size="sm" color="success">
+                  <Chip.Label>{t.diet[diet]}</Chip.Label>
+                </Chip>
+              ))}
+            </div>
+          ) : null}
+
+          {recipe.description ? (
+            <Typography.Paragraph className="text-muted">{recipe.description}</Typography.Paragraph>
+          ) : null}
+
+          <section className="flex flex-col gap-2">
+            <div className="flex items-baseline justify-between gap-3">
+              <Typography.Heading level={2} className="text-sm font-semibold text-muted">
+                {t.recipeIngredientsLabel}
+              </Typography.Heading>
+              {scaled ? (
+                <span className="text-xs text-muted">
+                  {t.recipeScaledTo(participantCount ?? 0)}
+                </span>
+              ) : null}
+            </div>
+            <Card className="gap-0 overflow-hidden p-0">
+              <ul>
+                {ingredients.map((entry, index) => (
+                  <li
+                    key={`${entry.ingredient}-${index}`}
+                    className="flex items-center gap-3 border-b border-separator px-4 py-3 last:border-b-0"
+                  >
+                    <span className="min-w-0 flex-1 truncate text-sm">{entry.ingredient}</span>
+                    <span className="shrink-0 text-sm font-medium tabular-nums">
+                      {formatQuantity(entry.quantity, entry.unit, t, language)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          </section>
+
+          {recipe.steps.length > 0 ? (
+            <section className="flex flex-col gap-2">
+              <Typography.Heading level={2} className="text-sm font-semibold text-muted">
+                {t.recipeSteps}
+              </Typography.Heading>
+              <Card className="p-4">
+                <ol className="flex list-decimal flex-col gap-2 pl-4 text-sm">
+                  {recipe.steps.map((step, index) => (
+                    <li key={index}>{step}</li>
+                  ))}
+                </ol>
+              </Card>
+            </section>
+          ) : null}
+
+          <Button variant="ghost" size="sm" className="w-fit text-muted" onPress={onDelete}>
+            {t.recipeDelete}
+          </Button>
+        </>
+      )}
+    </div>
+  );
+}
+
+function slugify(name: string): string {
+  const slug = name
+    .toLocaleLowerCase('de-CH')
+    .replace(/[^a-z0-9äöü]+/gu, '-')
+    .replace(/^-|-$/gu, '');
+  return slug === '' ? 'rezept' : slug;
+}
+
+function formatQuantity(quantity: number, unit: string, t: Strings, language: Language): string {
+  const amount = new Intl.NumberFormat(language === 'de' ? 'de-CH' : 'en-GB', {
+    maximumFractionDigits: 2,
+  }).format(quantity);
+  return `${amount} ${t.units[unit as keyof Strings['units']] ?? unit}`;
+}

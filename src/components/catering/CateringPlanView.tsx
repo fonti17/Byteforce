@@ -1,5 +1,5 @@
 import { Alert, Button, Card, Chip, IconChevronLeft, Spinner, Typography } from '@heroui/react';
-import type { PricedCateringPlan, PricedShoppingListEntry } from '../../types/cateringPlan';
+import type { CateringPlan, ShoppingListEntry } from '../../types/cateringPlan';
 import type { GatheringResult } from '../../types/gathering';
 import type { Language, Strings } from './strings';
 
@@ -7,10 +7,15 @@ interface CateringPlanViewProps {
   t: Strings;
   language: Language;
   result: GatheringResult;
-  plan: PricedCateringPlan | null;
+  plan: CateringPlan | null;
   isPlanning: boolean;
+  /** Number of recipes folded into this plan, shown as provenance. */
+  usedRecipes: number;
+  /** The model was unreachable and the plan came from the recipes alone. */
+  usedLocalPlan: boolean;
   error: Error | null;
   onRetry: () => void;
+  onOpenRecipes: () => void;
   onBack: () => void;
   onRestart: () => void;
 }
@@ -19,7 +24,7 @@ function localeOf(language: Language): string {
   return language === 'de' ? 'de-CH' : 'en-GB';
 }
 
-function formatQuantity(entry: PricedShoppingListEntry, t: Strings, language: Language): string {
+function formatQuantity(entry: ShoppingListEntry, t: Strings, language: Language): string {
   const amount = new Intl.NumberFormat(localeOf(language), {
     maximumFractionDigits: 2,
   }).format(entry.quantity);
@@ -31,13 +36,13 @@ function formatMoney(amount: number, currency: string, language: Language): stri
   return new Intl.NumberFormat(localeOf(language), {
     style: 'currency',
     currency,
-    maximumFractionDigits: 2,
+    maximumFractionDigits: 0,
   }).format(amount);
 }
 
 /** Shopping list grouped by category, in the order the categories first appear. */
-function groupByCategory(entries: PricedShoppingListEntry[], fallback: string) {
-  const groups = new Map<string, PricedShoppingListEntry[]>();
+function groupByCategory(entries: ShoppingListEntry[], fallback: string) {
+  const groups = new Map<string, ShoppingListEntry[]>();
   for (const entry of entries) {
     const category = entry.category ?? fallback;
     const existing = groups.get(category);
@@ -57,13 +62,19 @@ export function CateringPlanView({
   result,
   plan,
   isPlanning,
+  usedRecipes,
+  usedLocalPlan,
   error,
   onRetry,
+  onOpenRecipes,
   onBack,
   onRestart,
 }: CateringPlanViewProps) {
   const groups = plan ? groupByCategory(plan.shoppingList, t.uncategorised) : [];
-  const withinBudget = plan ? plan.pricing.estimatedTotal <= result.budget.amount : false;
+  const withinBudget =
+    plan !== null &&
+    plan.budget.estimatedTotal > 0 &&
+    plan.budget.estimatedTotal <= result.budget.amount;
 
   return (
     <div className="flex flex-col gap-6">
@@ -78,7 +89,21 @@ export function CateringPlanView({
         <Typography.Paragraph className="text-muted">
           {t.planSubtitle(result.participantCount)}
         </Typography.Paragraph>
+        {usedRecipes > 0 ? (
+          <Chip variant="soft" className="w-fit">
+            <Chip.Label>{`${t.recipeFromRecipes}: ${t.recipeSelected(usedRecipes)}`}</Chip.Label>
+          </Chip>
+        ) : null}
       </div>
+
+      {usedLocalPlan ? (
+        <Alert status="warning">
+          <Alert.Indicator />
+          <Alert.Content>
+            <Alert.Description>{t.planLocalNotice}</Alert.Description>
+          </Alert.Content>
+        </Alert>
+      ) : null}
 
       {isPlanning ? (
         <Card className="flex flex-col items-center gap-3 p-8 text-center">
@@ -155,50 +180,12 @@ export function CateringPlanView({
                     {entries.map((entry, index) => (
                       <li
                         key={`${entry.ingredient}-${index}`}
-                        className="flex items-start gap-3 border-b border-separator px-4 py-3 last:border-b-0"
+                        className="flex items-center gap-3 border-b border-separator px-4 py-3 last:border-b-0"
                       >
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-sm font-medium">{entry.ingredient}</span>
-                          <span className="block text-xs text-muted">
-                            {formatQuantity(entry, t, language)}
-                            {entry.productName ? ` · ${entry.productName}` : ''}
-                          </span>
-                          {entry.productUrl ? (
-                            <a
-                              className="text-xs text-accent underline underline-offset-2"
-                              href={entry.productUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              {t.openProdega}
-                            </a>
-                          ) : (
-                            <span className="block text-xs text-muted">{t.priceNotFound}</span>
-                          )}
-                          {entry.pricingStatus === 'quantity_unknown' && entry.pricingMessage ? (
-                            <span className="block text-xs text-warning">{entry.pricingMessage}</span>
-                          ) : null}
+                        <span className="min-w-0 flex-1 truncate text-sm">{entry.ingredient}</span>
+                        <span className="shrink-0 text-sm font-medium tabular-nums">
+                          {formatQuantity(entry, t, language)}
                         </span>
-                        {entry.unitPriceChf !== null ? (
-                          <span className="shrink-0 text-right">
-                            <span className="block text-sm font-semibold tabular-nums">
-                              {formatMoney(entry.unitPriceChf, 'CHF', language)}
-                            </span>
-                            <span className="block text-xs text-muted">
-                              {entry.packageQuantity ? `${t.packSize}: ${entry.packageQuantity}` : ''}
-                            </span>
-                            {entry.packagePriceChf !== null && entry.packagesNeeded !== null ? (
-                              <span className="block text-xs text-muted tabular-nums">
-                                {entry.packagesNeeded} {t.packs} × {formatMoney(entry.packagePriceChf, 'CHF', language)}
-                              </span>
-                            ) : null}
-                            {entry.estimatedTotalChf !== null ? (
-                              <span className="block text-xs tabular-nums">
-                                {t.positionTotal}: {formatMoney(entry.estimatedTotalChf, 'CHF', language)}
-                              </span>
-                            ) : null}
-                          </span>
-                        ) : null}
                       </li>
                     ))}
                   </ul>
@@ -212,22 +199,19 @@ export function CateringPlanView({
               {t.budgetSection}
             </Typography.Heading>
             <Card className="flex flex-col gap-3 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-sm text-muted">{t.estimatedTotal}</span>
-                <span className="text-lg font-bold tabular-nums">
-                  {formatMoney(plan.pricing.estimatedTotal, plan.pricing.currency, language)}
-                </span>
-              </div>
+              {plan.budget.estimatedTotal > 0 ? (
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm text-muted">{t.estimatedTotal}</span>
+                  <span className="text-lg font-bold tabular-nums">
+                    {formatMoney(plan.budget.estimatedTotal, plan.budget.currency, language)}
+                  </span>
+                </div>
+              ) : null}
               <Chip color={withinBudget ? 'success' : 'warning'} variant="soft" className="w-fit">
                 <Chip.Label>
                   {`${t.labelBudget}: ${formatMoney(result.budget.amount, result.budget.currency, language)}`}
                 </Chip.Label>
               </Chip>
-              {!plan.pricing.isComplete ? (
-                <Typography.Paragraph className="text-xs text-muted">
-                  {t.incompletePricing}
-                </Typography.Paragraph>
-              ) : null}
               {plan.budget.note ? (
                 <Typography.Paragraph className="text-sm text-muted">
                   {plan.budget.note}
@@ -241,6 +225,9 @@ export function CateringPlanView({
       <div className="flex flex-wrap gap-2">
         <Button variant="outline" onPress={onBack}>
           {t.backToBrief}
+        </Button>
+        <Button variant="outline" onPress={onOpenRecipes}>
+          {t.recipeOpen}
         </Button>
         <Button variant="ghost" className="text-muted" onPress={onRestart}>
           {t.restart}

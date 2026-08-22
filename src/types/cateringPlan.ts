@@ -1,4 +1,5 @@
 import type { LLMRequestOptions, LLMResponse } from './llm';
+import type { Recipe } from './recipe';
 
 /** Units allowed by `config/cateringPlanConfig.json`. */
 export const CATERING_UNITS = ['g', 'kg', 'ml', 'l', 'piece', 'pack'] as const;
@@ -66,6 +67,11 @@ export interface PricedCateringPlan extends Omit<CateringPlan, 'shoppingList'> {
 
 export interface CateringPlanOptions extends LLMRequestOptions {
   language?: 'de' | 'en';
+  /**
+   * Recipes chosen for this event. Their quantities are scaled and merged into
+   * the shopping list locally; the model only completes the menu around them.
+   */
+  recipes?: Recipe[];
 }
 
 export interface CateringPlanTurn {
