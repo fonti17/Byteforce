@@ -61,9 +61,13 @@ export function useGathering(options: GatheringOptions = {}) {
   /** Applies structured answers and hands back the resulting data synchronously. */
   const apply = useCallback(
     (updates: GatheringUpdates): GatheringData => {
-      const next = applyGatheringUpdates(data, updates);
-      setData(next.data);
-      return next.data;
+      let nextData: GatheringData = data;
+      setData((prev) => {
+        const next = applyGatheringUpdates(prev, updates);
+        nextData = next.data;
+        return next.data;
+      });
+      return nextData;
     },
     [data]
   );
@@ -73,7 +77,10 @@ export function useGathering(options: GatheringOptions = {}) {
    * unreachable the deterministic extractor still keeps the prototype usable.
    */
   const analyse = useCallback(
-    async (message: string, expectedField?: GatheringField | null): Promise<AnalyseResult> => {
+    async (
+      message: string,
+      expectedField?: GatheringField | null
+    ): Promise<AnalyseResult> => {
       const text = message.trim();
       if (!text) return { data, updates: {}, source: 'local', uncertain: [] };
 
@@ -93,6 +100,7 @@ export function useGathering(options: GatheringOptions = {}) {
           },
           optionsRef.current
         );
+
         setData(turn.data);
         setOriginalRequest(turn.originalRequest);
         setUncertain(turn.uncertain);
@@ -107,6 +115,7 @@ export function useGathering(options: GatheringOptions = {}) {
         setError(caught instanceof Error ? caught : new Error('Extraction failed'));
         const deterministic = extractDeterministicUpdates(text, field);
         const next = applyGatheringUpdates(data, deterministic);
+
         setData(next.data);
         setOriginalRequest(originalRequest ?? text);
         setUncertain([]);

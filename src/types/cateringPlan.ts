@@ -66,6 +66,11 @@ export interface CateringPlanOptions extends LLMRequestOptions {
    * the shopping list locally; the model only completes the menu around them.
    */
   recipes?: Recipe[];
+  /**
+   * When true, only the chosen recipes are used without inventing additional dishes.
+   * Uses the compact model (e.g. Apertus 8B) for estimating quantities only.
+   */
+  onlyOwnRecipes?: boolean;
 }
 
 export interface CateringPlanInput {

@@ -27,8 +27,28 @@ export class CateringPlanError extends Error {
 
 function buildSystemPrompt(
   language: CateringPlanOptions['language'],
-  hasRecipes: boolean
+  hasRecipes: boolean,
+  onlyOwnRecipes: boolean = false
 ): string {
+  if (onlyOwnRecipes && hasRecipes) {
+    return [
+      'You are a professional catering helper.',
+      'The menu is already strictly defined by the user’s own chosen recipes.',
+      'Do NOT invent or add any new dishes or menu items.',
+      'Return empty menu.items array and empty shoppingList array (all dishes and ingredient amounts are calculated from the selected recipes).',
+      'Set menu.name to a fitting concise title for the chosen recipes.',
+      '',
+      'Return only one valid JSON object that conforms exactly to this JSON Schema:',
+      JSON.stringify(cateringPlanConfig),
+      '',
+      language === 'en'
+        ? 'Write all human-readable values in English.'
+        : 'Write all human-readable values in German.',
+      'Do not wrap the JSON in markdown code fences.',
+      'Do not ask further questions.',
+    ].join('\n');
+  }
+
   return [
     'You are a professional catering planner.',
     'The information-gathering phase is complete. Use the supplied state as authoritative.',
@@ -176,13 +196,14 @@ function buildPlanMessages(
 }
 
 function buildPlanRequestOptions(options: CateringPlanOptions) {
-  const { language, recipes: _recipes, ...requestOptions } = options;
+  const { language, recipes: _recipes, onlyOwnRecipes, ...requestOptions } = options;
+  const defaultModel = onlyOwnRecipes ? 'apertus-8b' : 'apertus-70b';
   return {
     ...requestOptions,
-    model: options.model ?? 'apertus-70b',
+    model: options.model ?? defaultModel,
     temperature: options.temperature ?? 0.2,
     maxTokens: options.maxTokens ?? 1800,
-    systemPrompt: buildSystemPrompt(language, (_recipes ?? []).length > 0),
+    systemPrompt: buildSystemPrompt(language, (_recipes ?? []).length > 0, onlyOwnRecipes),
   };
 }
 

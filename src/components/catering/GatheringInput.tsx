@@ -407,6 +407,14 @@ function BudgetControl({
         >
           {t.send}
         </Button>
+        <Button
+          variant="outline"
+          isDisabled={isDisabled}
+          className="border-neutral-300 bg-white text-neutral-600 hover:border-primary hover:text-primary rounded px-3 py-2 text-sm font-medium"
+          onPress={() => onAnswer({ 'budget.amount': null, 'budget.currency': currency }, t.skip)}
+        >
+          {t.skip}
+        </Button>
       </div>
       <div className="flex flex-wrap gap-2">
         {BUDGET_PRESETS.map((preset) => (

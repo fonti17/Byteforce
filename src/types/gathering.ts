@@ -74,7 +74,7 @@ export interface GatheringResult {
   participantCount: number;
   meal: MealType;
   budget: {
-    amount: number;
+    amount: number | null;
     currency: string;
   };
   context: string | null;

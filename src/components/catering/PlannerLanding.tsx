@@ -12,7 +12,6 @@ import {
 import { isRecipeComplete } from '../../services/recipeService';
 import type { StoredRecipe } from '../../types/recipe';
 import { recipeName, recipeSummary } from './fields';
-import { ProdegaLogo } from './ProdegaLogo';
 import type { Language, Strings } from './strings';
 
 /**
@@ -30,11 +29,14 @@ const VISIBLE_RECIPES = 3;
 interface PlannerLandingProps {
   t: Strings;
   language: Language;
+  plannerMode: 'private' | 'business';
   isAnalysing: boolean;
+  onlyOwnRecipes: boolean;
+  onToggleOnlyOwnRecipes: (value: boolean) => void;
   /** Newest first — only the first few are shown here. */
   recipes: StoredRecipe[];
   selectedIds: string[];
-  onAnalyse: (message: string) => void;
+  onAnalyse: (message: string, targetMargin?: number | null) => void;
   onToggleRecipe: (id: string) => void;
   onOpenRecipe: (id: string) => void;
   onOpenRecipes: () => void;
@@ -50,7 +52,10 @@ interface PlannerLandingProps {
 export function PlannerLanding({
   t,
   language,
+  plannerMode,
   isAnalysing,
+  onlyOwnRecipes,
+  onToggleOnlyOwnRecipes,
   recipes,
   selectedIds,
   onAnalyse,
@@ -60,12 +65,19 @@ export function PlannerLanding({
   onStartWithRecipes,
 }: PlannerLandingProps) {
   const [message, setMessage] = useState('');
+  const [targetMarginStr, setTargetMarginStr] = useState('');
   // The list starts short and expands in place, so picking a recipe further down
   // does not mean leaving the planner.
   const [isExpanded, setIsExpanded] = useState(false);
   const canSubmit = message.trim().length > 0 && !isAnalysing;
   const visible = isExpanded ? recipes : recipes.slice(0, VISIBLE_RECIPES);
   const hiddenCount = recipes.length - visible.length;
+
+  const handleSubmit = () => {
+    if (!canSubmit) return;
+    const marginNum = targetMarginStr.trim() ? Number.parseFloat(targetMarginStr) : null;
+    onAnalyse(message, plannerMode === 'business' && !Number.isNaN(marginNum) ? marginNum : null);
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -80,7 +92,28 @@ export function PlannerLanding({
       </div>
 
       <Card className="border border-neutral-200 bg-white rounded-lg shadow-xs overflow-hidden">
-        <Card.Content className="p-4 sm:p-6">
+        <Card.Content className="p-4 sm:p-6 flex flex-col gap-4">
+          {plannerMode === 'business' ? (
+            <div className="rounded-lg bg-neutral-50 p-4 border border-neutral-200 flex flex-col gap-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-neutral-700">
+                {t.targetMarginLabel}
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="50"
+                value={targetMarginStr}
+                onChange={(e) => setTargetMarginStr(e.target.value)}
+                placeholder={t.targetMarginPlaceholder}
+                disabled={isAnalysing}
+                className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+              />
+              <span className="text-xs text-neutral-500 mt-0.5">
+                {t.targetMarginHelp}
+              </span>
+            </div>
+          ) : null}
+
           <TextField
             aria-label={t.inputLabel}
             variant="secondary"
@@ -94,8 +127,8 @@ export function PlannerLanding({
               rows={5}
               className="resize-none rounded-md border border-neutral-300 p-3 text-sm focus:border-primary focus:ring-1 focus:ring-primary w-full outline-none"
               onKeyDown={(event) => {
-                if (event.key === 'Enter' && (event.metaKey || event.ctrlKey) && canSubmit) {
-                  onAnalyse(message);
+                if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+                  handleSubmit();
                 }
               }}
             />
@@ -113,7 +146,7 @@ export function PlannerLanding({
           </Button>
           <Button
             isDisabled={!canSubmit}
-            onPress={() => onAnalyse(message)}
+            onPress={handleSubmit}
             className="bg-primary text-white hover:bg-primary/90 rounded px-5 py-2 text-sm font-medium transition-colors shadow-xs disabled:opacity-50"
           >
             {isAnalysing ? <Spinner size="sm" /> : null}
@@ -167,18 +200,18 @@ export function PlannerLanding({
                   aria-pressed={
                     isRecipeComplete(record.recipe) ? selectedIds.includes(record.id) : undefined
                   }
-                  className="flex min-w-0 flex-1 cursor-[var(--cursor-interactive)] items-center gap-3 px-4 py-3 text-left hover:bg-surface-secondary focus-visible:focus-ring"
+                  className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 px-4 py-3 text-left hover:bg-neutral-50 transition-colors focus:outline-none"
                 >
                   {selectedIds.includes(record.id) ? (
-                    <SuccessIcon className="size-5 shrink-0 text-accent" />
+                    <SuccessIcon className="size-5 shrink-0 text-primary" />
                   ) : (
-                    <CircleDashedIcon className="size-5 shrink-0 text-muted" />
+                    <CircleDashedIcon className="size-5 shrink-0 text-neutral-400" />
                   )}
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium">
+                    <span className="block truncate text-sm font-semibold text-neutral-900">
                       {recipeName(record.recipe, t)}
                     </span>
-                    <span className="block text-xs text-muted">
+                    <span className="block text-xs text-neutral-500 mt-0.5">
                       {recipeSummary(record.recipe, t)}
                     </span>
                   </span>
@@ -197,7 +230,7 @@ export function PlannerLanding({
         )}
 
         <div className="flex items-baseline justify-between gap-3">
-          <Typography.Paragraph size="sm" className="text-muted">
+          <Typography.Paragraph size="sm" className="text-neutral-600">
             {selectedIds.length > 0 ? t.recipeSelected(selectedIds.length) : t.recipeLandingHint}
           </Typography.Paragraph>
           {recipes.length > VISIBLE_RECIPES ? (
@@ -205,20 +238,45 @@ export function PlannerLanding({
               type="button"
               onClick={() => setIsExpanded(!isExpanded)}
               aria-expanded={isExpanded}
-              className="shrink-0 cursor-[var(--cursor-interactive)] text-xs text-accent hover:underline focus-visible:focus-ring"
+              className="shrink-0 cursor-pointer text-xs font-semibold text-primary hover:underline"
             >
               {isExpanded ? t.recipeLess : t.recipeMore(hiddenCount)}
             </button>
           ) : null}
         </div>
 
+        {/* Option to strictly use own recipes without inventing new dishes */}
+        {selectedIds.length > 0 ? (
+          <label className="flex items-start gap-3 p-3.5 rounded-lg border border-neutral-200 bg-neutral-50 cursor-pointer hover:bg-neutral-100/70 transition-colors">
+            <input
+              type="checkbox"
+              checked={onlyOwnRecipes}
+              onChange={(e) => onToggleOnlyOwnRecipes(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-neutral-300 text-primary focus:ring-primary accent-primary"
+            />
+            <div className="flex flex-col gap-0.5 select-none">
+              <span className="text-xs font-bold text-neutral-900">
+                {t.onlyOwnRecipesLabel}
+              </span>
+              <span className="text-xs text-neutral-600">
+                {t.onlyOwnRecipesDescription}
+              </span>
+            </div>
+          </label>
+        ) : null}
+
         {/* Picked dishes are enough to start: the question walk asks for the rest. */}
         {selectedIds.length > 0 ? (
           <div className="flex flex-col items-stretch gap-2">
-            <Button fullWidth isDisabled={isAnalysing} onPress={onStartWithRecipes}>
+            <Button
+              fullWidth
+              isDisabled={isAnalysing}
+              onPress={onStartWithRecipes}
+              className="bg-primary text-white hover:bg-primary/90 rounded px-4 py-2.5 text-sm font-semibold transition-colors shadow-xs"
+            >
               {t.recipeStartWith(selectedIds.length)}
             </Button>
-            <Typography.Paragraph size="sm" className="mx-auto text-muted">
+            <Typography.Paragraph size="sm" className="mx-auto text-xs text-neutral-500">
               {t.recipeStartHint}
             </Typography.Paragraph>
           </div>

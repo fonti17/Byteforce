@@ -20,10 +20,15 @@ const REQUIRED_FIELDS: GatheringField[] = [
   'eventType',
   'participantCount',
   'meal',
+];
+const OPTIONAL_FIELDS: GatheringField[] = [
+  'date.day',
+  'date.month',
+  'date.year',
   'budget.amount',
   'budget.currency',
+  'context',
 ];
-const OPTIONAL_FIELDS: GatheringField[] = ['date.day', 'date.month', 'date.year', 'context'];
 
 const EVENT_TYPES = new Set<EventType>(['private', 'business', 'team_event', 'other']);
 const MEALS = new Set<MealType>([
@@ -89,8 +94,8 @@ export function buildGatheringResult(data: GatheringData): GatheringResult | nul
     participantCount: data.participantCount as number,
     meal: data.meal as MealType,
     budget: {
-      amount: data.budget.amount as number,
-      currency: data.budget.currency as string,
+      amount: data.budget.amount,
+      currency: data.budget.currency ?? 'CHF',
     },
     context: data.context,
   };
