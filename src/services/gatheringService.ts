@@ -1,4 +1,5 @@
 import gatheringConfig from '../../config/gatheringConfig.json';
+import { extractJsonObject } from '../lib/json';
 import { llmService } from './llmService';
 import type { LLMMessage } from '../types/llm';
 import type {
@@ -6,6 +7,7 @@ import type {
   GatheringData,
   GatheringField,
   GatheringOptions,
+  GatheringResult,
   GatheringState,
   GatheringStatus,
   GatheringTurn,
@@ -59,6 +61,29 @@ export function createInitialGatheringData(): GatheringData {
     participantCount: null,
     meal: null,
     budget: { amount: null, currency: null },
+  };
+}
+
+/**
+ * Projects the gathered data onto the Part-1 schema shape. Returns `null` while
+ * any required field is still missing, so callers can only ever hand out a
+ * payload that validates against `config/gatheringConfig.json`.
+ */
+export function buildGatheringResult(data: GatheringData): GatheringResult | null {
+  if (getMissingRequiredFields(data).length > 0) return null;
+  return {
+    eventType: data.eventType as EventType,
+    date: {
+      day: data.date.day as number,
+      month: data.date.month as number,
+      year: data.date.year,
+    },
+    participantCount: data.participantCount as number,
+    meal: data.meal as MealType,
+    budget: {
+      amount: data.budget.amount as number,
+      currency: data.budget.currency as string,
+    },
   };
 }
 
@@ -206,20 +231,6 @@ export function extractDeterministicUpdates(
   }
 
   return updates;
-}
-
-function extractJsonObject(content: string): Record<string, unknown> | null {
-  const firstBrace = content.indexOf('{');
-  const lastBrace = content.lastIndexOf('}');
-  if (firstBrace === -1 || lastBrace <= firstBrace) return null;
-  try {
-    const parsed: unknown = JSON.parse(content.slice(firstBrace, lastBrace + 1));
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
-      ? parsed as Record<string, unknown>
-      : null;
-  } catch {
-    return null;
-  }
 }
 
 export function parseModelUpdates(content: string): GatheringUpdates {

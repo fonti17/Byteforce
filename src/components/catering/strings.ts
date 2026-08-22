@@ -1,0 +1,196 @@
+export type Language = 'de' | 'en';
+
+/** Copy for the three planner views, mirroring the DE/EN switch from the design. */
+export const strings = {
+  de: {
+    brand: 'Catering Planer',
+    languageLabel: 'DE',
+    back: 'Zurück',
+    restart: 'Neu starten',
+
+    landingTitle: 'Sag uns, was du weisst.',
+    landingSubtitle: 'Wir fragen nur nach dem, was noch fehlt.',
+    inputLabel: 'Anfrage',
+    inputPlaceholder: 'E-Mail einfügen oder Anlass frei beschreiben …',
+    insertExample: 'Beispiel-Anfrage einfügen',
+    analyse: 'Anfrage verstehen',
+    analysing: 'Anfrage wird gelesen …',
+    quickStart: 'Schnellstart',
+    footnote: 'Für Privatpersonen und Profis. Mengen berechnet die App, nicht geraten.',
+
+    briefTitle: 'Das haben wir verstanden',
+    briefSubtitle: (found: number, missing: number) =>
+      `${found} Angaben erkannt, ${missing} fehlen noch.`,
+    briefComplete: 'Alle Pflichtangaben sind vorhanden.',
+    missing: 'fehlt',
+    recognised: 'erkannt',
+    answerQuestions: (count: number) =>
+      count === 1 ? '1 Frage beantworten' : `${count} Fragen beantworten`,
+    toResult: 'Zum Ergebnis',
+    offlineNotice:
+      'Das Sprachmodell war nicht erreichbar — gelesen wurde mit der lokalen Erkennung.',
+
+    questionOf: (current: number, total: number) => `Frage ${current}/${total}`,
+    freeTextHint: 'Oder tippe eine eigene Antwort.',
+    freeTextLabel: 'Eigene Antwort',
+    freeTextPlaceholder: 'Eigene Antwort …',
+    send: 'Senden',
+    skip: 'Später',
+
+    qEventType: 'Um welche Art von Anlass handelt es sich?',
+    qDate: 'Wann findet der Anlass statt?',
+    qParticipants: 'Wie viele Personen nehmen teil?',
+    qMeal: 'Welche Mahlzeit soll serviert werden?',
+    qBudget: 'Welches Budget steht für Essen und Getränke zur Verfügung?',
+
+    labelEventType: 'Anlass',
+    labelDate: 'Datum',
+    labelParticipants: 'Personen',
+    labelMeal: 'Mahlzeit',
+    labelBudget: 'Budget',
+    labelAmount: 'Betrag',
+    labelCurrency: 'Währung',
+    labelYearOptional: 'Jahr optional — ohne Angabe bleibt es null.',
+
+    eventType: {
+      private: 'Privat',
+      business: 'Geschäftlich',
+      team_event: 'Team-Event',
+      other: 'Anderes',
+    },
+    meal: {
+      breakfast: 'Frühstück',
+      lunch: 'Mittagessen',
+      dinner: 'Abendessen',
+      other: 'Anderes',
+    },
+
+    resultTitle: 'Bereit für Teil 2',
+    resultSubtitle: 'Diese Struktur folgt gatheringConfig.json und geht so weiter.',
+    copy: 'JSON kopieren',
+    copied: 'Kopiert',
+    download: 'Als Datei sichern',
+    editAnswers: 'Angaben ändern',
+    schemaValid: 'Schema-konform',
+
+    toPlan: 'Menü & Einkaufsliste ansehen',
+    planTitle: 'Menü und Einkaufsliste',
+    planSubtitle: (participants: number) => `Vorschlag für ${participants} Personen.`,
+    planning: 'Menü und Einkaufsliste werden erstellt …',
+    planningHint: 'Das Modell rechnet die Mengen für alle Teilnehmenden hoch.',
+    planError: 'Der Vorschlag konnte nicht erstellt werden.',
+    retry: 'Erneut versuchen',
+    menuSection: 'Menü',
+    shoppingSection: 'Einkaufsliste',
+    budgetSection: 'Budget',
+    estimatedTotal: 'Geschätzte Kosten',
+    itemCount: (count: number) =>
+      count === 1 ? '1 Position' : `${count} Positionen`,
+    uncategorised: 'Weitere Zutaten',
+    backToBrief: 'Angaben ändern',
+    units: {
+      g: 'g',
+      kg: 'kg',
+      ml: 'ml',
+      l: 'l',
+      piece: 'Stück',
+      pack: 'Packung',
+    },
+  },
+  en: {
+    brand: 'Catering Planner',
+    languageLabel: 'EN',
+    back: 'Back',
+    restart: 'Start over',
+
+    landingTitle: 'Tell us what you know.',
+    landingSubtitle: 'We only ask for what is still missing.',
+    inputLabel: 'Request',
+    inputPlaceholder: 'Paste an email or describe your event …',
+    insertExample: 'Insert example request',
+    analyse: 'Understand request',
+    analysing: 'Reading your request …',
+    quickStart: 'Quick start',
+    footnote: 'For private hosts and professionals. Quantities are calculated, not guessed.',
+
+    briefTitle: 'Here is what we understood',
+    briefSubtitle: (found: number, missing: number) =>
+      `${found} details found, ${missing} still missing.`,
+    briefComplete: 'Every required detail is present.',
+    missing: 'missing',
+    recognised: 'found',
+    answerQuestions: (count: number) =>
+      count === 1 ? 'Answer 1 question' : `Answer ${count} questions`,
+    toResult: 'See the result',
+    offlineNotice: 'The language model was unreachable — parsed with local extraction instead.',
+
+    questionOf: (current: number, total: number) => `Question ${current}/${total}`,
+    freeTextHint: 'Or type your own answer.',
+    freeTextLabel: 'Your own answer',
+    freeTextPlaceholder: 'Your own answer …',
+    send: 'Send',
+    skip: 'Later',
+
+    qEventType: 'What kind of event is this?',
+    qDate: 'When does the event take place?',
+    qParticipants: 'How many people will attend?',
+    qMeal: 'Which meal should be served?',
+    qBudget: 'What is the budget for food and drinks?',
+
+    labelEventType: 'Occasion',
+    labelDate: 'Date',
+    labelParticipants: 'Guests',
+    labelMeal: 'Meal',
+    labelBudget: 'Budget',
+    labelAmount: 'Amount',
+    labelCurrency: 'Currency',
+    labelYearOptional: 'Year is optional — left out it stays null.',
+
+    eventType: {
+      private: 'Private',
+      business: 'Business',
+      team_event: 'Team event',
+      other: 'Other',
+    },
+    meal: {
+      breakfast: 'Breakfast',
+      lunch: 'Lunch',
+      dinner: 'Dinner',
+      other: 'Other',
+    },
+
+    resultTitle: 'Ready for part 2',
+    resultSubtitle: 'This structure follows gatheringConfig.json and is handed on as is.',
+    copy: 'Copy JSON',
+    copied: 'Copied',
+    download: 'Save as file',
+    editAnswers: 'Change answers',
+    schemaValid: 'Schema valid',
+
+    toPlan: 'See menu & shopping list',
+    planTitle: 'Menu and shopping list',
+    planSubtitle: (participants: number) => `Proposal for ${participants} guests.`,
+    planning: 'Building the menu and shopping list …',
+    planningHint: 'The model scales the quantities to every participant.',
+    planError: 'The proposal could not be created.',
+    retry: 'Try again',
+    menuSection: 'Menu',
+    shoppingSection: 'Shopping list',
+    budgetSection: 'Budget',
+    estimatedTotal: 'Estimated cost',
+    itemCount: (count: number) => (count === 1 ? '1 item' : `${count} items`),
+    uncategorised: 'Other ingredients',
+    backToBrief: 'Change answers',
+    units: {
+      g: 'g',
+      kg: 'kg',
+      ml: 'ml',
+      l: 'l',
+      piece: 'pcs',
+      pack: 'pack',
+    },
+  },
+};
+
+/** Both language objects are structurally identical, so either one defines the shape. */
+export type Strings = (typeof strings)['de'];

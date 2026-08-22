@@ -5,6 +5,25 @@
 @source "../index.html";
 @source "./**/*.{ts,tsx}";
 
+@theme {
+  --font-sans: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+/* Byte Force brand accent. HeroUI derives hover/soft/focus tints from --accent,
+   so overriding this single token re-colours every accent-bearing component. */
+@layer theme {
+  :root,
+  .light,
+  [data-theme="light"],
+  [data-theme="default"],
+  .dark,
+  [data-theme="dark"] {
+    --accent: #e20026;
+    --accent-foreground: var(--white);
+  }
+}
+
 html,
 body,
 #root {
@@ -13,4 +32,8 @@ body,
 
 body {
   margin: 0;
+  /* #root is exactly one viewport tall, so the page background has to be painted
+     on the body as well or overflow scrolls onto bare white. */
+  background-color: var(--background);
+  color: var(--foreground);
 }
