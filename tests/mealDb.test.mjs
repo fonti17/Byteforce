@@ -7,22 +7,22 @@ import {
   mealDbToRecipe,
   parseMealDbInstructions,
   parseMealDbMeasure,
-} from '../src/services/mealDbService.ts';
+} from '../src/features/recipes/mealDbService.ts';
 import {
   mergeShoppingList,
   normalizeUnit,
   recipeService,
   scaleRecipe,
-} from '../src/services/recipeService.ts';
+} from '../src/features/recipes/recipeService.ts';
 import {
   cateringPlanService,
   parseCateringPlan,
-} from '../src/services/cateringPlanService.ts';
+} from '../src/features/catering-plan/cateringPlanService.ts';
 import {
   extractJsonArray,
   translationService,
   TranslationService,
-} from '../src/services/translationService.ts';
+} from '../src/features/pricing/transgourmet/translationService.ts';
 
 // Mock meal object from TheMealDB API
 const MOCK_MEAL_ARRABIATA = {

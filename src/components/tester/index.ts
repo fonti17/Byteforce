@@ -1,1 +1,0 @@
-export { ChatTester } from './ChatTester';

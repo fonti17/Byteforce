@@ -1,1 +1,0 @@
-export { ProdegaLogo } from './ProdegaLogo';
