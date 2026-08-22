@@ -6,12 +6,15 @@
 @source "./**/*.{ts,tsx}";
 
 @theme {
-  --font-sans: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --color-primary: #ed1b2f;
+  --color-primary-foreground: #ffffff;
+  --color-accent: #ed1b2f;
+  --color-accent-foreground: #ffffff;
 }
 
-/* Byte Force brand accent. HeroUI derives hover/soft/focus tints from --accent,
-   so overriding this single token re-colours every accent-bearing component. */
+/* Transgourmet / Prodega Design System Tokens */
 @layer theme {
   :root,
   .light,
@@ -19,21 +22,50 @@
   [data-theme="default"],
   .dark,
   [data-theme="dark"] {
-    --accent: #e20026;
-    --accent-foreground: var(--white);
+    --accent: #ed1b2f;
+    --accent-foreground: #ffffff;
+    --primary: #ed1b2f;
+    --primary-foreground: #ffffff;
+    --primary-light: #fee2e2;
+    --primary-dark: #cc1122;
+    --secondary: #666666;
+    --secondary-foreground: #ffffff;
+    --border: #e5e5e5;
+    --input: #e5e5e5;
+    --ring: #ed1b2f;
+    --background: #f8f8f8;
+    --foreground: #111111;
   }
 }
 
 html,
 body,
 #root {
-  height: 100%;
+  min-height: 100%;
 }
 
 body {
   margin: 0;
-  /* #root is exactly one viewport tall, so the page background has to be painted
-     on the body as well or overflow scrolls onto bare white. */
-  background-color: var(--background);
-  color: var(--foreground);
+  font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: #ffffff;
+  color: #111111;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom Prodega badge and action style helpers */
+.prodega-badge-action {
+  background-color: #ed1b2f;
+  color: #ffffff;
+  font-weight: 700;
+  border-radius: 4px;
+}
+
+.prodega-badge-new {
+  background-color: #06b6d4;
+  color: #ffffff;
+  font-weight: 600;
+  border-radius: 3px;
+  font-size: 11px;
+  letter-spacing: 0.05em;
 }

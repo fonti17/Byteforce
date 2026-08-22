@@ -115,7 +115,7 @@ export function RecipeEditor({ t, recipe, onSave, onCancel }: RecipeEditorProps)
   return (
     <div className="flex flex-col gap-5">
       {isIncomplete ? (
-        <Alert status="danger">
+        <Alert status="danger" className="border-red-200 bg-red-50 text-red-900 rounded-lg">
           <Alert.Indicator />
           <Alert.Content>
             <Alert.Description>{t.recipeIncomplete}</Alert.Description>
@@ -125,7 +125,10 @@ export function RecipeEditor({ t, recipe, onSave, onCancel }: RecipeEditorProps)
 
       <Field label={t.recipeNameLabel}>
         <TextField aria-label={t.recipeNameLabel} variant="secondary" value={name} onChange={setName}>
-          <Input placeholder={t.recipeNameLabel} />
+          <Input
+            placeholder={t.recipeNameLabel}
+            className="rounded-md border border-neutral-300 px-3 py-2 text-sm text-neutral-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full"
+          />
         </TextField>
       </Field>
 
@@ -136,7 +139,10 @@ export function RecipeEditor({ t, recipe, onSave, onCancel }: RecipeEditorProps)
           value={description}
           onChange={setDescription}
         >
-          <TextArea rows={2} className="resize-none" />
+          <TextArea
+            rows={2}
+            className="resize-none rounded-md border border-neutral-300 p-2.5 text-sm text-neutral-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full"
+          />
         </TextField>
       </Field>
 
@@ -148,7 +154,10 @@ export function RecipeEditor({ t, recipe, onSave, onCancel }: RecipeEditorProps)
           onChange={setServings}
           className="w-28"
         >
-          <Input inputMode="numeric" />
+          <Input
+            inputMode="numeric"
+            className="rounded-md border border-neutral-300 px-3 py-2 text-sm font-semibold text-neutral-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full"
+          />
         </TextField>
       </Field>
 
@@ -157,7 +166,7 @@ export function RecipeEditor({ t, recipe, onSave, onCancel }: RecipeEditorProps)
           aria-label={t.recipeCourseLabel}
           value={course ?? ''}
           onChange={(event) => setCourse((event.target.value || null) as RecipeCourse | null)}
-          className="w-fit cursor-[var(--cursor-interactive)] rounded-xl border border-border bg-surface px-3 py-2 text-sm text-foreground focus-visible:focus-ring"
+          className="w-fit cursor-pointer rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary"
         >
           <option value="">{t.recipeCourseNone}</option>
           {RECIPE_COURSES.map((value) => (
@@ -176,10 +185,10 @@ export function RecipeEditor({ t, recipe, onSave, onCancel }: RecipeEditorProps)
           aria-label={t.recipeDietLabel}
           selectedKeys={diet}
           onSelectionChange={(keys) => setDiet([...keys] as RecipeDiet[])}
-          className="flex-wrap"
+          className="flex-wrap gap-1.5"
         >
           {RECIPE_DIETS.map((value) => (
-            <ToggleButton key={value} id={value}>
+            <ToggleButton key={value} id={value} className="text-xs rounded font-medium">
               {t.diet[value]}
             </ToggleButton>
           ))}
@@ -197,13 +206,17 @@ export function RecipeEditor({ t, recipe, onSave, onCancel }: RecipeEditorProps)
                 onChange={(value) => updateIngredient(entry.key, { quantity: value })}
                 className="w-20 shrink-0"
               >
-                <Input inputMode="decimal" placeholder="0" />
+                <Input
+                  inputMode="decimal"
+                  placeholder="0"
+                  className="rounded-md border border-neutral-300 px-2 py-1.5 text-sm font-semibold text-neutral-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full"
+                />
               </TextField>
               <select
                 aria-label={t.recipeUnitLabel}
                 value={entry.unit}
                 onChange={(event) => updateIngredient(entry.key, { unit: event.target.value })}
-                className="w-24 shrink-0 cursor-[var(--cursor-interactive)] rounded-xl border border-border bg-surface px-2 py-2 text-sm text-foreground focus-visible:focus-ring"
+                className="w-24 shrink-0 cursor-pointer rounded-md border border-neutral-300 bg-white px-2 py-1.5 text-sm text-neutral-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary"
               >
                 {CATERING_UNITS.map((unit) => (
                   <option key={unit} value={unit}>
@@ -218,13 +231,16 @@ export function RecipeEditor({ t, recipe, onSave, onCancel }: RecipeEditorProps)
                 onChange={(value) => updateIngredient(entry.key, { ingredient: value })}
                 className="min-w-0 flex-1"
               >
-                <Input placeholder={t.recipeIngredientLabel} />
+                <Input
+                  placeholder={t.recipeIngredientLabel}
+                  className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm text-neutral-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full"
+                />
               </TextField>
               <Button
                 variant="ghost"
                 size="sm"
                 aria-label={t.recipeRemoveIngredient}
-                className="shrink-0 text-muted"
+                className="shrink-0 text-neutral-400 hover:text-red-600 p-1"
                 onPress={() =>
                   setIngredients((current) => current.filter((row) => row.key !== entry.key))
                 }
@@ -236,7 +252,7 @@ export function RecipeEditor({ t, recipe, onSave, onCancel }: RecipeEditorProps)
           <Button
             variant="outline"
             size="sm"
-            className="w-fit"
+            className="w-fit border-neutral-300 text-neutral-700 hover:border-primary hover:text-primary rounded text-xs font-medium"
             onPress={() =>
               setIngredients((current) => [
                 ...current,
@@ -256,13 +272,25 @@ export function RecipeEditor({ t, recipe, onSave, onCancel }: RecipeEditorProps)
           value={stepsText}
           onChange={setStepsText}
         >
-          <TextArea rows={5} className="resize-none" />
+          <TextArea
+            rows={5}
+            className="resize-none rounded-md border border-neutral-300 p-2.5 text-sm text-neutral-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full"
+          />
         </TextField>
       </Field>
 
-      <div className="flex flex-wrap gap-2">
-        <Button onPress={submit}>{t.recipeSave}</Button>
-        <Button variant="outline" onPress={onCancel}>
+      <div className="flex flex-wrap gap-2 pt-2 border-t border-neutral-200">
+        <Button
+          onPress={submit}
+          className="bg-primary text-white hover:bg-primary/90 rounded px-5 py-2 text-sm font-semibold transition-colors shadow-xs"
+        >
+          {t.recipeSave}
+        </Button>
+        <Button
+          variant="outline"
+          onPress={onCancel}
+          className="border-neutral-300 text-neutral-700 hover:border-neutral-400 rounded px-4 py-2 text-sm font-medium"
+        >
           {t.recipeCancel}
         </Button>
       </div>
@@ -281,10 +309,10 @@ function Field({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="text-xs font-semibold uppercase tracking-wide text-muted">{label}</span>
+      <span className="text-xs font-bold uppercase tracking-wider text-neutral-700">{label}</span>
       {children}
       {hint ? (
-        <Typography.Paragraph size="sm" className="text-muted">
+        <Typography.Paragraph size="sm" className="text-xs text-neutral-400">
           {hint}
         </Typography.Paragraph>
       ) : null}

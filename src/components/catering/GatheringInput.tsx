@@ -102,7 +102,12 @@ export function GatheringInput({
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-4">
-        <Button variant="ghost" size="sm" className="-ml-3 w-fit text-muted" onPress={onBack}>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="-ml-3 w-fit text-primary hover:underline hover:bg-transparent p-0 text-sm font-medium"
+          onPress={onBack}
+        >
           <IconChevronLeft />
           {t.back}
         </Button>
@@ -113,11 +118,11 @@ export function GatheringInput({
             aria-label={t.questionOf(index + 1, questions.length)}
             className="flex-1"
           >
-            <ProgressBar.Track>
-              <ProgressBar.Fill />
+            <ProgressBar.Track className="h-1.5 bg-neutral-200 rounded-full overflow-hidden">
+              <ProgressBar.Fill className="bg-primary h-full transition-all" />
             </ProgressBar.Track>
           </ProgressBar>
-          <span className="font-mono text-xs text-muted tabular-nums">
+          <span className="font-mono text-xs font-semibold text-neutral-500 tabular-nums">
             {t.questionOf(index + 1, questions.length)}
           </span>
         </div>
@@ -127,10 +132,10 @@ export function GatheringInput({
         <div className="flex flex-col gap-3">
           {log.map((turn) => (
             <div key={turn.question} className="flex flex-col gap-1.5">
-              <p className="max-w-[80%] self-start rounded-2xl rounded-bl-sm bg-surface-secondary px-3.5 py-2 text-sm text-foreground">
+              <p className="max-w-[80%] self-start rounded-lg rounded-bl-none bg-white border border-neutral-200 px-3.5 py-2 text-sm text-neutral-900 shadow-xs">
                 {questionPrompt(turn.question, t)}
               </p>
-              <p className="max-w-[80%] self-end rounded-2xl rounded-br-sm bg-accent px-3.5 py-2 text-sm text-accent-foreground">
+              <p className="max-w-[80%] self-end rounded-lg rounded-br-none bg-primary px-3.5 py-2 text-sm font-medium text-white shadow-xs">
                 {formatAnswer(turn.question, data, t, language) ?? turn.answer}
               </p>
             </div>
@@ -139,7 +144,7 @@ export function GatheringInput({
       ) : null}
 
       <div className="flex flex-col gap-4">
-        <Typography.Heading level={1} className="text-xl font-semibold tracking-tight text-balance">
+        <Typography.Heading level={1} className="text-xl font-bold tracking-tight text-neutral-900">
           {questionPrompt(question, t)}
         </Typography.Heading>
 
@@ -152,8 +157,8 @@ export function GatheringInput({
         />
       </div>
 
-      <Card className="gap-2">
-        <Card.Content>
+      <Card className="gap-2 bg-white border border-neutral-200 rounded-lg shadow-xs p-4">
+        <Card.Content className="p-0">
           <TextField
             aria-label={t.freeTextLabel}
             variant="secondary"
@@ -163,11 +168,15 @@ export function GatheringInput({
             className="w-full"
           >
             <div className="flex items-center gap-2">
-              <Input placeholder={t.freeTextPlaceholder} className="flex-1" />
+              <Input
+                placeholder={t.freeTextPlaceholder}
+                className="flex-1 rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+              />
               <Button
                 variant="outline"
                 isDisabled={freeText.trim().length === 0 || isAnalysing}
                 onPress={() => void submitFreeText()}
+                className="bg-primary text-white hover:bg-primary/90 border-primary rounded px-4 py-2 text-sm font-medium disabled:opacity-50"
               >
                 {isAnalysing ? <Spinner size="sm" /> : null}
                 {t.send}
@@ -175,8 +184,8 @@ export function GatheringInput({
             </div>
           </TextField>
         </Card.Content>
-        <Card.Footer>
-          <Typography.Paragraph size="sm" className="text-muted">
+        <Card.Footer className="p-0 pt-2">
+          <Typography.Paragraph size="sm" className="text-xs text-neutral-400">
             {t.freeTextHint}
           </Typography.Paragraph>
         </Card.Footer>
@@ -235,6 +244,7 @@ function OptionPills<T extends string>({ options, isDisabled, onPick }: OptionPi
           key={option.value}
           variant="outline"
           isDisabled={isDisabled}
+          className="border-neutral-300 bg-white text-neutral-800 hover:border-primary hover:text-primary rounded-md px-4 py-2 text-sm font-medium transition-colors"
           onPress={() => onPick(option.value, option.label)}
         >
           {option.label}
@@ -264,10 +274,11 @@ function DateControl({ t, isDisabled, onAnswer }: ControlProps) {
           value={value}
           onChange={(event) => setValue(event.target.value)}
           disabled={isDisabled}
-          className="min-h-10 rounded-lg border border-border bg-surface-secondary px-3 text-sm text-foreground outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
+          className="min-h-10 rounded-md border border-neutral-300 bg-white px-3 text-sm text-neutral-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary"
         />
         <Button
           isDisabled={isDisabled || value === ''}
+          className="bg-primary text-white hover:bg-primary/90 rounded px-4 py-2 text-sm font-medium disabled:opacity-50"
           onPress={() => {
             if (!value) return;
             const [year, month, day] = value.split('-').map(Number);
@@ -280,7 +291,7 @@ function DateControl({ t, isDisabled, onAnswer }: ControlProps) {
           {t.send}
         </Button>
       </div>
-      <Typography.Paragraph size="sm" className="text-muted">
+      <Typography.Paragraph size="sm" className="text-xs text-neutral-500">
         {t.labelYearOptional}
       </Typography.Paragraph>
     </div>
@@ -304,14 +315,15 @@ function ParticipantControl({ t, isDisabled, onAnswer }: ControlProps) {
           isDisabled={isDisabled}
           className="w-40"
         >
-          <NumberField.Group>
-            <NumberField.DecrementButton />
-            <NumberField.Input />
-            <NumberField.IncrementButton />
+          <NumberField.Group className="border border-neutral-300 rounded-md bg-white">
+            <NumberField.DecrementButton className="text-neutral-600 hover:text-primary" />
+            <NumberField.Input className="text-sm font-semibold text-neutral-900" />
+            <NumberField.IncrementButton className="text-neutral-600 hover:text-primary" />
           </NumberField.Group>
         </NumberField>
         <Button
           isDisabled={isDisabled || !isValid}
+          className="bg-primary text-white hover:bg-primary/90 rounded px-4 py-2 text-sm font-medium disabled:opacity-50"
           onPress={() => onAnswer({ participantCount: count }, String(count))}
         >
           {t.send}
@@ -324,6 +336,7 @@ function ParticipantControl({ t, isDisabled, onAnswer }: ControlProps) {
             variant="outline"
             size="sm"
             isDisabled={isDisabled}
+            className="border-neutral-300 bg-white text-neutral-800 hover:border-primary hover:text-primary rounded text-xs font-medium"
             onPress={() => onAnswer({ participantCount: preset }, String(preset))}
           >
             {preset}
@@ -363,10 +376,10 @@ function BudgetControl({
           isDisabled={isDisabled}
           className="w-44"
         >
-          <NumberField.Group>
-            <NumberField.DecrementButton />
-            <NumberField.Input />
-            <NumberField.IncrementButton />
+          <NumberField.Group className="border border-neutral-300 rounded-md bg-white">
+            <NumberField.DecrementButton className="text-neutral-600 hover:text-primary" />
+            <NumberField.Input className="text-sm font-semibold text-neutral-900" />
+            <NumberField.IncrementButton className="text-neutral-600 hover:text-primary" />
           </NumberField.Group>
         </NumberField>
         <ToggleButtonGroup
@@ -382,12 +395,16 @@ function BudgetControl({
           isDisabled={isDisabled}
         >
           {CURRENCY_OPTIONS.map((option) => (
-            <ToggleButton key={option} id={option} className="font-mono">
+            <ToggleButton key={option} id={option} className="font-mono text-xs font-medium rounded">
               {option}
             </ToggleButton>
           ))}
         </ToggleButtonGroup>
-        <Button isDisabled={isDisabled || !isValid} onPress={() => submit(amount)}>
+        <Button
+          isDisabled={isDisabled || !isValid}
+          className="bg-primary text-white hover:bg-primary/90 rounded px-4 py-2 text-sm font-medium disabled:opacity-50"
+          onPress={() => submit(amount)}
+        >
           {t.send}
         </Button>
       </div>
@@ -398,6 +415,7 @@ function BudgetControl({
             variant="outline"
             size="sm"
             isDisabled={isDisabled}
+            className="border-neutral-300 bg-white text-neutral-800 hover:border-primary hover:text-primary rounded text-xs font-medium"
             onPress={() => submit(preset)}
           >
             {preset.toLocaleString('de-CH')} {currency}

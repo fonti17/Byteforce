@@ -125,46 +125,56 @@ export function RecipesView({
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
-        <Button variant="ghost" size="sm" className="-ml-3 w-fit text-muted" onPress={onBack}>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="-ml-3 w-fit text-primary hover:underline hover:bg-transparent p-0 text-sm font-medium"
+          onPress={onBack}
+        >
           <IconChevronLeft />
           {t.back}
         </Button>
-        <Typography.Heading level={1} className="text-2xl font-bold tracking-tight">
+        <Typography.Heading level={1} className="text-2xl font-bold tracking-tight text-neutral-900">
           {t.recipesTitle}
         </Typography.Heading>
-        <Typography.Paragraph className="text-muted">{t.recipesSubtitle}</Typography.Paragraph>
+        <Typography.Paragraph className="text-sm text-neutral-600">{t.recipesSubtitle}</Typography.Paragraph>
       </div>
 
-      <Card>
-        <Card.Content>
+      <Card className="border border-neutral-200 bg-white rounded-lg shadow-xs overflow-hidden">
+        <Card.Content className="p-4">
           <TextField
             aria-label={t.recipeInputLabel}
             variant="secondary"
             value={text}
             onChange={setText}
             isDisabled={isImporting}
+            className="w-full"
           >
             <TextArea
               placeholder={t.recipeInputPlaceholder}
-              rows={6}
-              className="resize-none"
+              rows={5}
+              className="resize-none rounded-md border border-neutral-300 p-3 text-sm focus:border-primary focus:ring-1 focus:ring-primary w-full outline-none"
               onKeyDown={(event) => {
                 if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) submit();
               }}
             />
           </TextField>
         </Card.Content>
-        <Card.Footer className="justify-between gap-3">
+        <Card.Footer className="justify-between gap-3 bg-neutral-50 px-4 py-3 border-t border-neutral-100 flex flex-wrap">
           <Button
             variant="ghost"
             size="sm"
-            className="text-accent"
+            className="text-primary hover:underline hover:bg-transparent p-0 text-sm font-medium"
             isDisabled={isImporting}
             onPress={() => setText(EXAMPLE_RECIPE[language])}
           >
             {t.recipeInsertExample}
           </Button>
-          <Button isDisabled={!canSubmit} onPress={submit}>
+          <Button
+            isDisabled={!canSubmit}
+            onPress={submit}
+            className="bg-primary text-white hover:bg-primary/90 rounded px-4 py-2 text-sm font-medium transition-colors shadow-xs disabled:opacity-50"
+          >
             {isImporting ? <Spinner size="sm" /> : null}
             {isImporting ? t.recipeAdding : t.recipeAdd}
           </Button>
@@ -172,8 +182,8 @@ export function RecipesView({
       </Card>
 
       {isCreating ? (
-        <Card>
-          <Card.Content>
+        <Card className="border border-neutral-200 bg-white rounded-lg shadow-xs p-4">
+          <Card.Content className="p-0">
             <RecipeEditor
               t={t}
               recipe={emptyRecipe()}
@@ -186,13 +196,17 @@ export function RecipesView({
           </Card.Content>
         </Card>
       ) : (
-        <Button variant="outline" className="w-fit" onPress={() => setIsCreating(true)}>
+        <Button
+          variant="outline"
+          className="w-fit border-neutral-300 text-neutral-800 hover:border-primary hover:text-primary rounded text-sm font-medium"
+          onPress={() => setIsCreating(true)}
+        >
           {t.recipeManual}
         </Button>
       )}
 
       {error ? (
-        <Alert status="danger">
+        <Alert status="danger" className="border-red-200 bg-red-50 text-red-900 rounded-lg">
           <Alert.Indicator />
           <Alert.Content>
             <Alert.Description>{t.recipeError}</Alert.Description>
@@ -201,7 +215,7 @@ export function RecipesView({
       ) : null}
 
       {source === 'local' && !error ? (
-        <Alert status="warning">
+        <Alert status="warning" className="border-amber-200 bg-amber-50 text-amber-900 rounded-lg">
           <Alert.Indicator />
           <Alert.Content>
             <Alert.Description>{t.recipeLocalNotice}</Alert.Description>
@@ -210,7 +224,10 @@ export function RecipesView({
       ) : null}
 
       {notice ? (
-        <Alert status={notice.isError ? 'danger' : 'success'}>
+        <Alert
+          status={notice.isError ? 'danger' : 'success'}
+          className={`rounded-lg ${notice.isError ? 'border-red-200 bg-red-50 text-red-900' : 'border-emerald-200 bg-emerald-50 text-emerald-900'}`}
+        >
           <Alert.Indicator />
           <Alert.Content>
             <Alert.Description>{notice.text}</Alert.Description>
@@ -218,22 +235,22 @@ export function RecipesView({
         </Alert>
       ) : null}
 
-      <section className="flex flex-col gap-2">
-        <div className="flex items-baseline justify-between gap-3">
-          <Typography.Heading level={2} className="text-sm font-semibold text-muted">
+      <section className="flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <Typography.Heading level={2} className="text-base font-bold text-neutral-900">
             {t.recipeLibrary}
           </Typography.Heading>
           <span className="text-xs text-muted">{t.recipeCount(recipes.length)}</span>
         </div>
 
         {recipes.length === 0 ? (
-          <Card className="p-6 text-center">
-            <Typography.Paragraph className="text-sm text-muted">
+          <Card className="p-6 text-center bg-white border border-neutral-200 rounded-lg">
+            <Typography.Paragraph className="text-sm text-neutral-500">
               {t.recipeLibraryEmpty}
             </Typography.Paragraph>
           </Card>
         ) : (
-          <Card className="gap-0 overflow-hidden p-0">
+          <Card className="gap-0 overflow-hidden p-0 bg-white border border-neutral-200 rounded-lg shadow-xs divide-y divide-neutral-100">
             {recipes.map((record) => (
               <RecipeRow
                 key={record.id}
@@ -245,7 +262,7 @@ export function RecipesView({
           </Card>
         )}
 
-        <Typography.Paragraph size="sm" className="text-muted">
+        <Typography.Paragraph size="sm" className="text-xs text-neutral-500">
           {t.recipeLibraryHint}
         </Typography.Paragraph>
       </section>
@@ -255,7 +272,11 @@ export function RecipesView({
         <Button variant="outline" isDisabled={recipes.length === 0} onPress={exportLibrary}>
           {t.recipeExport}
         </Button>
-        <Button variant="outline" onPress={() => fileInputRef.current?.click()}>
+        <Button
+          variant="outline"
+          onPress={() => fileInputRef.current?.click()}
+          className="border-neutral-300 text-neutral-800 hover:border-primary hover:text-primary rounded text-xs font-medium"
+        >
           {t.recipeImport}
         </Button>
         <input
