@@ -1,7 +1,7 @@
-import gatheringConfig from '../../config/gatheringConfig.json';
-import { extractJsonObject } from '../lib/json';
-import { llmService } from './llmService';
-import type { LLMMessage } from '../types/llm';
+import gatheringConfig from '../../config/gatheringConfig.json' with { type: 'json' };
+import { extractJsonObject } from '../lib/json.ts';
+import { llmService } from './llmService.ts';
+import type { LLMMessage } from '../types/llm.ts';
 import type {
   EventType,
   GatheringData,
@@ -14,7 +14,7 @@ import type {
   GatheringUpdates,
   GatheringUncertainty,
   MealType,
-} from '../types/gathering';
+} from '../types/gathering.ts';
 
 const REQUIRED_FIELDS: GatheringField[] = [
   'eventType',

@@ -1,13 +1,21 @@
-import recipeConfig from '../../config/recipeConfig.json';
-import { extractJsonObject } from '../lib/json';
-import { llmService } from './llmService';
-import { CATERING_UNITS } from '../types/cateringPlan';
+import recipeConfig from '../../config/recipeConfig.json' with { type: 'json' };
+import { extractJsonObject } from '../lib/json.ts';
+import { llmService } from './llmService.ts';
+import {
+  isExemptFromMealDb,
+  mealDbService,
+  mealDbToRecipe,
+  parseMealDbInstructions,
+  parseMealDbMeasure,
+  type MealDbMeal,
+} from './mealDbService.ts';
+import { CATERING_UNITS } from '../types/cateringPlan.ts';
 import type {
   CateringMenuItem,
   CateringPlan,
   ShoppingListEntry,
-} from '../types/cateringPlan';
-import type { GatheringResult } from '../types/gathering';
+} from '../types/cateringPlan.ts';
+import type { GatheringResult } from '../types/gathering.ts';
 import type {
   Recipe,
   RecipeCourse,
@@ -17,9 +25,17 @@ import type {
   RecipeOptions,
   RecipeTurn,
   StoredRecipe,
-} from '../types/recipe';
-import { RECIPE_COURSES, RECIPE_DIETS, RECIPE_REQUIRED_FIELDS } from '../types/recipe';
-import type { LLMResponse } from '../types/llm';
+} from '../types/recipe.ts';
+import { RECIPE_COURSES, RECIPE_DIETS, RECIPE_REQUIRED_FIELDS } from '../types/recipe.ts';
+import type { LLMResponse } from '../types/llm.ts';
+
+export {
+  isExemptFromMealDb,
+  mealDbService,
+  mealDbToRecipe,
+  parseMealDbInstructions,
+  parseMealDbMeasure,
+};
 
 export class RecipeError extends Error {
   /** Raw model answer, kept so a failed import can be inspected. */
@@ -60,9 +76,14 @@ const UNIT_ALIASES: Record<string, { unit: string; factor: number }> = {
   el: { unit: 'ml', factor: 15 },
   esslöffel: { unit: 'ml', factor: 15 },
   tbsp: { unit: 'ml', factor: 15 },
+  tablespoon: { unit: 'ml', factor: 15 },
+  tablespoons: { unit: 'ml', factor: 15 },
+  tblsp: { unit: 'ml', factor: 15 },
   tl: { unit: 'ml', factor: 5 },
   teelöffel: { unit: 'ml', factor: 5 },
   tsp: { unit: 'ml', factor: 5 },
+  teaspoon: { unit: 'ml', factor: 5 },
+  teaspoons: { unit: 'ml', factor: 5 },
   tasse: { unit: 'ml', factor: 250 },
   tassen: { unit: 'ml', factor: 250 },
   cup: { unit: 'ml', factor: 250 },
@@ -87,6 +108,10 @@ const UNIT_ALIASES: Record<string, { unit: string; factor: number }> = {
   dosen: { unit: 'pack', factor: 1 },
   can: { unit: 'pack', factor: 1 },
   cans: { unit: 'pack', factor: 1 },
+  tin: { unit: 'pack', factor: 1 },
+  tins: { unit: 'pack', factor: 1 },
+  package: { unit: 'pack', factor: 1 },
+  packages: { unit: 'pack', factor: 1 },
 };
 
 /** Unicode fractions, common in pasted recipes. */
@@ -122,7 +147,7 @@ export function normalizeUnit(
 }
 
 /** Keeps quantities readable: whole counts, sensible decimals for weights. */
-function roundQuantity(quantity: number, unit: string): number {
+export function roundQuantity(quantity: number, unit: string): number {
   if (unit === 'piece' || unit === 'pack') return Math.max(1, Math.ceil(quantity));
   if (unit === 'kg' || unit === 'l') return Math.round(quantity * 100) / 100;
   return Math.round(quantity);
@@ -510,7 +535,7 @@ export function toStoredRecipe(recipe: Recipe, existing?: StoredRecipe): StoredR
 }
 
 /* -------------------------------------------------------------------------- */
-/* Model conversion                                                           */
+/* Model conversion & TheMealDB Integration                                    */
 /* -------------------------------------------------------------------------- */
 
 function buildSystemPrompt(language: RecipeOptions['language']): string {
@@ -535,6 +560,33 @@ function buildSystemPrompt(language: RecipeOptions['language']): string {
       : 'Write all human-readable values in German.',
     'Do not wrap the JSON in markdown code fences. Do not add prose.',
   ].join('\n');
+}
+
+function buildBeverageSaucePrompt(name: string, language: RecipeOptions['language']): string {
+  return [
+    'You are a professional chef. Generate a high-quality recipe for this beverage, cocktail, sauce, or condiment:',
+    `Item: "${name}"`,
+    '',
+    'Return only one valid JSON object conforming exactly to this JSON Schema:',
+    JSON.stringify(recipeConfig),
+    '',
+    'Rules:',
+    '- Provide realistic ingredient quantities for 4 standard servings (servings: 4).',
+    '- Convert every ingredient amount to one of the schema units: g, kg, ml, l, piece, pack.',
+    '- Set course to "drink" for beverages/cocktails, or "side"/"starter" for sauces/condiments.',
+    '- Set source to "AI (Direct Generation)".',
+    '',
+    language === 'en'
+      ? 'Write all human-readable values in English.'
+      : 'Write all human-readable values in German.',
+    'Do not wrap the JSON in markdown code fences. Do not add prose.',
+  ].join('\n');
+}
+
+export interface ResolvedMealRecipeResult {
+  recipe: Recipe;
+  isFromMealDb: boolean;
+  mealDbRaw?: MealDbMeal;
 }
 
 export const recipeService = {
@@ -568,5 +620,174 @@ export const recipeService = {
     if (!text) throw new RecipeError('A recipe text is required.');
     const response = await this.create(text, options);
     return { recipe: withStatedServings(parseRecipe(response.content), text), response };
+  },
+
+  /**
+   * Search TheMealDB for food recipes matching query and return hydrated Recipe models.
+   */
+  async lookupMealDb(query: string, options: { signal?: AbortSignal } = {}): Promise<Recipe[]> {
+    const meals = await mealDbService.searchByName(query, options.signal);
+    return meals.map((meal) => mealDbToRecipe(meal));
+  },
+
+  /**
+   * Directly generates beverage or sauce recipes via AI without requiring TheMealDB lookup (R3).
+   */
+  async createBeverageOrSauce(
+    name: string,
+    options: RecipeOptions = {}
+  ): Promise<Recipe> {
+    const { language = 'de', ...requestOptions } = options;
+    const prompt = buildBeverageSaucePrompt(name, language);
+
+    try {
+      const response = await llmService.chat(
+        [{ role: 'user', content: `Generate recipe for: ${name}` }],
+        {
+          ...requestOptions,
+          model: options.model ?? 'apertus-70b',
+          temperature: options.temperature ?? 0.2,
+          maxTokens: options.maxTokens ?? 1200,
+          systemPrompt: prompt,
+        }
+      );
+
+      const parsed = parseRecipe(response.content, name);
+      return {
+        ...parsed,
+        source: parsed.source || 'AI (Direct Generation)',
+      };
+    } catch {
+      const isDrink = isExemptFromMealDb(name).type === 'beverage';
+      return {
+        name,
+        description: null,
+        servings: 4,
+        course: isDrink ? 'drink' : 'side',
+        diet: [],
+        ingredients: [
+          {
+            ingredient: name,
+            quantity: isDrink ? 1 : 200,
+            unit: isDrink ? 'l' : 'g',
+            category: isDrink ? 'drinks' : 'condiments',
+            note: null,
+          },
+        ],
+        steps: [`Prepare and serve ${name}.`],
+        source: 'AI (Direct Generation)',
+      };
+    }
+  },
+
+  /**
+   * Resolves a dish candidate according to requirements:
+   * - Beverages and sauces are generated directly by AI (R3).
+   * - Food dishes are strictly looked up in TheMealDB, with automatic retry strategies (R1, R2).
+   */
+  async resolveMealRecipe(
+    candidateName: string,
+    options: {
+      course?: RecipeCourse;
+      category?: string;
+      keywords?: string[];
+      signal?: AbortSignal;
+      language?: 'de' | 'en';
+      retryWithAi?: boolean;
+    } = {}
+  ): Promise<ResolvedMealRecipeResult> {
+    const trimmed = candidateName.trim();
+    if (!trimmed) throw new RecipeError('Candidate name cannot be empty.');
+
+    const exemption = isExemptFromMealDb({ name: trimmed, course: options.course });
+    if (exemption.isExempt) {
+      const recipe = await this.createBeverageOrSauce(trimmed, {
+        language: options.language,
+        signal: options.signal,
+      });
+      return { recipe, isFromMealDb: false };
+    }
+
+    // Step 1: Query TheMealDB directly with candidate name & search strategies
+    const match = await mealDbService.findMatchingMeal(trimmed, {
+      category: options.category,
+      course: options.course,
+      keywords: options.keywords,
+      signal: options.signal,
+    });
+
+    if (match) {
+      return {
+        recipe: mealDbToRecipe(match, { course: options.course }),
+        isFromMealDb: true,
+        mealDbRaw: match,
+      };
+    }
+
+    // Step 2: Automatic retry - ask AI for 3 alternative English database candidate names
+    if (options.retryWithAi !== false) {
+      try {
+        const aiRetryResponse = await llmService.chat(
+          [
+            {
+              role: 'user',
+              content: [
+                `Suggest 3 alternative standard English dish names that exist in recipe databases like TheMealDB for: "${trimmed}".`,
+                `Course: ${options.course ?? 'main'}.`,
+                'IMPORTANT: The dish names must strictly be in English (TheMealDB is in English).',
+                'Return only a JSON object with key "alternatives" containing an array of 3 English dish name strings, e.g. {"alternatives": ["Chicken Curry", "Chicken Tikka Masala", "Butter Chicken"]}.',
+              ].join('\n'),
+            },
+          ],
+          {
+            model: 'apertus-8b',
+            temperature: 0.1,
+            maxTokens: 200,
+            signal: options.signal,
+          }
+        );
+
+        const parsedObj = extractJsonObject(aiRetryResponse.content);
+        const candidates: string[] = Array.isArray(parsedObj?.alternatives)
+          ? (parsedObj!.alternatives as string[])
+          : [];
+
+        for (const altName of candidates) {
+          if (typeof altName === 'string' && altName.trim()) {
+            const altMatch = await mealDbService.findMatchingMeal(altName.trim(), {
+              category: options.category,
+              course: options.course,
+              signal: options.signal,
+            });
+            if (altMatch) {
+              return {
+                recipe: mealDbToRecipe(altMatch, { course: options.course }),
+                isFromMealDb: true,
+                mealDbRaw: altMatch,
+              };
+            }
+          }
+        }
+      } catch {
+        // Continue to category fallback
+      }
+    }
+
+    // Step 3: Query TheMealDB by category fallback to obtain a valid database-backed recipe
+    const fallbackCategory =
+      options.category || (options.course === 'dessert' ? 'Dessert' : options.course === 'side' ? 'Side' : 'Miscellaneous');
+    const categoryMeals = await mealDbService.filterByCategory(fallbackCategory, options.signal);
+    if (categoryMeals.length > 0) {
+      const fallbackMeal = await mealDbService.lookupById(categoryMeals[0].idMeal, options.signal);
+      if (fallbackMeal) {
+        return {
+          recipe: mealDbToRecipe(fallbackMeal, { course: options.course }),
+          isFromMealDb: true,
+          mealDbRaw: fallbackMeal,
+        };
+      }
+    }
+
+    throw new RecipeError(`No matching recipe found in TheMealDB for "${trimmed}".`);
   },
 };

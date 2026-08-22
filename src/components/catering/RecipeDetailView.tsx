@@ -222,8 +222,8 @@ export function RecipeDetailView({
         </Card>
       ) : (
         <>
-          {recipe.course || recipe.diet.length > 0 ? (
-            <div className="flex flex-wrap gap-1.5">
+          {recipe.course || recipe.diet.length > 0 || recipe.source ? (
+            <div className="flex flex-wrap items-center gap-1.5">
               {recipe.course ? (
                 <Chip variant="soft" size="sm" className="bg-neutral-200 text-neutral-800 font-semibold rounded text-xs">
                   <Chip.Label>{t.course[recipe.course]}</Chip.Label>
@@ -234,6 +234,15 @@ export function RecipeDetailView({
                   <Chip.Label>{t.diet[diet]}</Chip.Label>
                 </Chip>
               ))}
+              {recipe.source && recipe.source.includes('TheMealDB') ? (
+                <Chip variant="soft" size="sm" className="bg-primary/10 text-primary font-bold rounded text-xs">
+                  <Chip.Label>TheMealDB</Chip.Label>
+                </Chip>
+              ) : recipe.source ? (
+                <Chip variant="soft" size="sm" className="bg-neutral-100 text-neutral-600 rounded text-xs">
+                  <Chip.Label>{recipe.source}</Chip.Label>
+                </Chip>
+              ) : null}
             </div>
           ) : null}
 

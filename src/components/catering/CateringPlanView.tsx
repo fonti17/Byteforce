@@ -67,7 +67,6 @@ export function CateringPlanView({
   result,
   plan,
   isPlanning,
-  streamedText: _streamedText,
   usedRecipes,
   targetMargin,
   onlyOwnRecipes = false,

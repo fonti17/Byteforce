@@ -1,7 +1,15 @@
-import cateringPlanConfig from '../../config/cateringPlanConfig.json';
-import { extractJsonObject } from '../lib/json';
-import { llmService } from './llmService';
-import { mergeRecipesIntoPlan, recipeContribution } from './recipeService';
+import cateringPlanConfig from '../../config/cateringPlanConfig.json' with { type: 'json' };
+import { extractJsonObject } from '../lib/json.ts';
+import { llmService } from './llmService.ts';
+import {
+  buildPlanFromRecipes,
+  isExemptFromMealDb,
+  mergeRecipesIntoPlan,
+  mergeShoppingList,
+  recipeContribution,
+  recipeService,
+  scaleRecipe,
+} from './recipeService.ts';
 import type {
   CateringMenuItem,
   CateringPlan,
@@ -9,10 +17,10 @@ import type {
   CateringPlanInput,
   CateringPlanTurn,
   ShoppingListEntry,
-} from '../types/cateringPlan';
-import type { GatheringData, GatheringResult } from '../types/gathering';
-import type { LLMResponse } from '../types/llm';
-import type { Recipe } from '../types/recipe';
+} from '../types/cateringPlan.ts';
+import type { GatheringData, GatheringResult } from '../types/gathering.ts';
+import type { LLMResponse } from '../types/llm.ts';
+import type { Recipe } from '../types/recipe.ts';
 
 export class CateringPlanError extends Error {
   /** Raw model answer, kept so a failed run can be inspected. */
@@ -56,11 +64,11 @@ function buildSystemPrompt(
     '',
     'Your task:',
     hasRecipes
-      ? '1. The supplied recipes are already part of the menu. Complete the menu around them with what is still missing, for example a side, a salad, bread, a dessert, or drinks.'
-      : '1. Choose one coherent menu suitable for the event type, date, meal, participant count, and budget.',
+      ? '1. The supplied recipes are already part of the menu. Complete the menu around them with what is still missing, for example a side, a salad, bread, a dessert, sauces, or drinks.'
+      : '1. Propose one cohesive, high-quality catering menu suitable for the event type, date, meal, participant count, and budget.',
     '2. Derive all required ingredients from that menu.',
     '3. Calculate realistic total purchase quantities for the complete participant count.',
-    '4. Use the supplied budget only as guidance when choosing the menu. Do not estimate prices.',
+    '4. For food recipes, ALWAYS propose standard culinary dish names IN ENGLISH (e.g. "Beef Sunday Roast", "Chicken Tikka Masala", "Mushroom Risotto") because they must match English entries in TheMealDB database.',
     '',
     ...(hasRecipes
       ? [
@@ -75,8 +83,8 @@ function buildSystemPrompt(
     JSON.stringify(cateringPlanConfig),
     '',
     language === 'en'
-      ? 'Write all human-readable values in English.'
-      : 'Write all human-readable values in German.',
+      ? 'Write all human-readable descriptions and titles in English.'
+      : 'Write descriptions and menu name in German, but ALWAYS write individual dish names in English so they match TheMealDB.',
     'Use numeric quantities and one of the units allowed by the schema.',
     'Do not wrap the JSON in markdown code fences.',
     '',
@@ -118,9 +126,6 @@ function parseShoppingList(value: unknown): ShoppingListEntry[] {
 
 /**
  * Reads the part-2 answer into the shape of `config/cateringPlanConfig.json`.
- * Unusable list entries are dropped; a missing menu or shopping list is an error,
- * because the view has nothing to show without them — unless recipes already
- * supply both, in which case an empty model answer is a valid result.
  */
 export function parseCateringPlan(
   content: string,
@@ -145,10 +150,13 @@ export function parseCateringPlan(
 
 /**
  * What the model is told about the chosen recipes: the dishes and the totals the
- * application has already calculated, so it plans around them instead of
- * repeating them.
+ * application has already calculated, so it plans around them instead of repeating them.
  */
-function describeRecipes(recipes: Recipe[], participantCount: number, language: CateringPlanOptions['language']): string {
+function describeRecipes(
+  recipes: Recipe[],
+  participantCount: number,
+  language: CateringPlanOptions['language']
+): string {
   const contribution = recipeContribution(recipes, participantCount);
   return [
     language === 'en'
@@ -178,21 +186,23 @@ function buildPlanMessages(
   const { language, recipes = [] } = options;
   const { gatheringState, originalRequest } = resolvePlanInput(input);
   const participantCount = gatheringState.participantCount ?? 0;
-  return [{
-    role: 'user',
-    content: [
-      language === 'en'
-        ? 'Build a menu and the shopping list from this completed catering state:'
-        : 'Erstelle aus diesem abgeschlossenen Catering-State ein Menü und die Einkaufsliste:',
-      JSON.stringify(gatheringState, null, 2),
-      ...(originalRequest
-        ? [`${language === 'en' ? 'Original request:' : 'Original-Anfrage:'}\n${originalRequest}`]
-        : []),
-      ...(recipes.length > 0 && participantCount > 0
-        ? [describeRecipes(recipes, participantCount, language)]
-        : []),
-    ].join('\n\n'),
-  }];
+  return [
+    {
+      role: 'user',
+      content: [
+        language === 'en'
+          ? 'Build a menu and the shopping list from this completed catering state:'
+          : 'Erstelle aus diesem abgeschlossenen Catering-State ein Menü und die Einkaufsliste:',
+        JSON.stringify(gatheringState, null, 2),
+        ...(originalRequest
+          ? [`${language === 'en' ? 'Original request:' : 'Original-Anfrage:'}\n${originalRequest}`]
+          : []),
+        ...(recipes.length > 0 && participantCount > 0
+          ? [describeRecipes(recipes, participantCount, language)]
+          : []),
+      ].join('\n\n'),
+    },
+  ];
 }
 
 function buildPlanRequestOptions(options: CateringPlanOptions) {
@@ -207,6 +217,72 @@ function buildPlanRequestOptions(options: CateringPlanOptions) {
   };
 }
 
+/**
+ * Hydrates candidate dishes using TheMealDB for food recipes and direct AI for beverages/sauces.
+ */
+async function hydratePlanWithTheMealDb(
+  basePlan: CateringPlan,
+  selectedRecipes: Recipe[],
+  participantCount: number,
+  options: CateringPlanOptions
+): Promise<CateringPlan> {
+  const userRecipeNames = new Set(selectedRecipes.map((r) => r.name.toLowerCase()));
+  const hydratedRecipes: Recipe[] = [];
+  const finalMenuItems: CateringMenuItem[] = [];
+
+  // 1. Add user selected recipes
+  for (const r of selectedRecipes) {
+    hydratedRecipes.push(r);
+    finalMenuItems.push({ name: r.name, description: r.description });
+  }
+
+  // 2. Hydrate proposed dishes
+  for (const item of basePlan.menu.items) {
+    const lowerName = item.name.toLowerCase();
+    if (userRecipeNames.has(lowerName)) {
+      continue;
+    }
+
+    try {
+      const resolved = await recipeService.resolveMealRecipe(item.name, {
+        signal: options.signal,
+        language: options.language,
+        retryWithAi: true,
+      });
+
+      hydratedRecipes.push(resolved.recipe);
+      finalMenuItems.push({
+        name: resolved.recipe.name || item.name,
+        description: item.description || resolved.recipe.description,
+      });
+    } catch {
+      // If resolution fails (e.g. offline fallback), retain original menu item
+      finalMenuItems.push(item);
+    }
+  }
+
+  // 3. If recipes were successfully hydrated, calculate authoritative shopping list
+  if (hydratedRecipes.length > 0 && participantCount > 0) {
+    const allScaledEntries = hydratedRecipes.flatMap((r) => scaleRecipe(r, participantCount));
+    const mergedShoppingList = mergeShoppingList([
+      ...allScaledEntries,
+      ...basePlan.shoppingList.filter((entry) =>
+        isExemptFromMealDb(entry.ingredient).isExempt
+      ),
+    ]);
+
+    return {
+      menu: {
+        name: basePlan.menu.name || 'Catering Menu',
+        items: finalMenuItems,
+      },
+      shoppingList: mergedShoppingList.length > 0 ? mergedShoppingList : basePlan.shoppingList,
+    };
+  }
+
+  return mergeRecipesIntoPlan(basePlan, selectedRecipes, participantCount);
+}
+
 export const cateringPlanService = {
   async create(
     input: GatheringData | GatheringResult | CateringPlanInput,
@@ -216,8 +292,11 @@ export const cateringPlanService = {
   },
 
   /**
-   * Part 2 end to end: one request, parsed into the schema shape. Chosen recipes
-   * are folded in afterwards, so their quantities stay the calculated ones.
+   * Part 2 end to end:
+   * 1. Query AI for catering proposal.
+   * 2. For food dishes, strictly look up in TheMealDB (with retry/fallback).
+   * 3. For beverages and sauces, directly generate via AI.
+   * 4. Scale quantities for the participant count and assemble final plan.
    */
   async plan(
     input: GatheringResult | CateringPlanInput,
@@ -226,12 +305,29 @@ export const cateringPlanService = {
     const recipes = options.recipes ?? [];
     const { gatheringState } = resolvePlanInput(input);
     const gatheringResult = gatheringState as GatheringResult;
+    const participantCount = gatheringResult.participantCount ?? 1;
+
+    if (options.onlyOwnRecipes && recipes.length > 0) {
+      return {
+        plan: buildPlanFromRecipes(recipes, gatheringResult),
+        response: { content: '', model: options.model ?? 'apertus-8b' },
+      };
+    }
+
     const response = await this.create(input, options);
     const parsed = parseCateringPlan(response.content, {
       requireItems: recipes.length === 0,
     });
+
+    const hydratedPlan = await hydratePlanWithTheMealDb(
+      parsed,
+      recipes,
+      participantCount,
+      options
+    );
+
     return {
-      plan: mergeRecipesIntoPlan(parsed, recipes, gatheringResult.participantCount),
+      plan: hydratedPlan,
       response,
     };
   },
@@ -253,11 +349,28 @@ export const cateringPlanService = {
     const recipes = options.recipes ?? [];
     const { gatheringState } = resolvePlanInput(input);
     const gatheringResult = gatheringState as GatheringResult;
+    const participantCount = gatheringResult.participantCount ?? 1;
+
+    if (options.onlyOwnRecipes && recipes.length > 0) {
+      return {
+        plan: buildPlanFromRecipes(recipes, gatheringResult),
+        response: { content, model: options.model ?? 'apertus-8b' },
+      };
+    }
+
     const parsed = parseCateringPlan(content, {
       requireItems: recipes.length === 0,
     });
+
+    const hydratedPlan = await hydratePlanWithTheMealDb(
+      parsed,
+      recipes,
+      participantCount,
+      options
+    );
+
     return {
-      plan: mergeRecipesIntoPlan(parsed, recipes, gatheringResult.participantCount),
+      plan: hydratedPlan,
       response: { content, model: options.model ?? 'apertus-70b' },
     };
   },

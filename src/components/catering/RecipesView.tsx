@@ -3,6 +3,7 @@ import {
   Alert,
   Button,
   Card,
+  Chip,
   IconChevronLeft,
   IconChevronRight,
   Spinner,
@@ -12,7 +13,7 @@ import {
 } from '@heroui/react';
 import type { Recipe, RecipeLibraryFile, StoredRecipe } from '../../types/recipe';
 import type { RecipeSource } from '../../hooks/useRecipes';
-import { emptyRecipe } from '../../services/recipeService';
+import { emptyRecipe, recipeService } from '../../services/recipeService';
 import { RecipeEditor } from './RecipeEditor';
 import { recipeName, recipeSummary } from './fields';
 import type { Language, Strings } from './strings';
@@ -70,9 +71,8 @@ interface RecipesViewProps {
 }
 
 /**
- * Recipe library — pasted text becomes the structure of
- * `config/recipeConfig.json` and is stored in the browser. Managing recipes
- * happens here; picking them for an event happens on the landing page.
+ * Recipe library — pasted text or TheMealDB queries become structured recipes
+ * stored in the browser.
  */
 export function RecipesView({
   t,
@@ -90,6 +90,9 @@ export function RecipesView({
 }: RecipesViewProps) {
   const [text, setText] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchingMealDb, setIsSearchingMealDb] = useState(false);
+  const [mealDbResults, setMealDbResults] = useState<Recipe[] | null>(null);
   const [notice, setNotice] = useState<{ text: string; isError: boolean } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canSubmit = text.trim().length > 0 && !isImporting;
@@ -98,6 +101,32 @@ export function RecipesView({
     if (!canSubmit) return;
     onImportText(text);
     setText('');
+  };
+
+  const handleMealDbSearch = async () => {
+    const trimmed = searchQuery.trim();
+    if (!trimmed) return;
+
+    setIsSearchingMealDb(true);
+    setNotice(null);
+    try {
+      const results = await recipeService.lookupMealDb(trimmed);
+      setMealDbResults(results);
+      if (results.length === 0) {
+        setNotice({ text: t.mealDbNotFound, isError: false });
+      }
+    } catch {
+      setNotice({ text: t.mealDbNotFound, isError: true });
+    } finally {
+      setIsSearchingMealDb(false);
+    }
+  };
+
+  const handleImportFromMealDb = (recipe: Recipe) => {
+    onCreate(recipe);
+    setMealDbResults(null);
+    setSearchQuery('');
+    setNotice({ text: t.recipeSaved, isError: false });
   };
 
   const exportLibrary = () => {
@@ -140,6 +169,67 @@ export function RecipesView({
         <Typography.Paragraph className="text-sm text-neutral-600">{t.recipesSubtitle}</Typography.Paragraph>
       </div>
 
+      {/* TheMealDB Database Search Card */}
+      <Card className="border border-neutral-200 bg-white rounded-lg shadow-xs overflow-hidden">
+        <Card.Content className="p-4 flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <Typography.Heading level={2} className="text-sm font-bold text-neutral-900 flex items-center gap-2">
+              <span>{t.mealDbSearch}</span>
+              <Chip variant="soft" size="sm" className="bg-primary/10 text-primary font-bold text-[10px] px-1.5 py-0.5 rounded">
+                <Chip.Label>TheMealDB</Chip.Label>
+              </Chip>
+            </Typography.Heading>
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={t.mealDbSearchPlaceholder}
+              disabled={isSearchingMealDb}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void handleMealDbSearch();
+              }}
+              className="flex-1 rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+            />
+            <Button
+              isDisabled={!searchQuery.trim() || isSearchingMealDb}
+              onPress={() => void handleMealDbSearch()}
+              className="bg-primary text-white hover:bg-primary/90 rounded px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
+            >
+              {isSearchingMealDb ? <Spinner size="sm" /> : null}
+              {isSearchingMealDb ? t.mealDbSearching : t.mealDbSearch}
+            </Button>
+          </div>
+
+          {mealDbResults && mealDbResults.length > 0 ? (
+            <div className="mt-2 flex flex-col gap-2 border-t border-neutral-100 pt-3">
+              <span className="text-xs font-semibold text-neutral-600">
+                {t.mealDbFound(mealDbResults.length)}
+              </span>
+              <div className="max-h-60 overflow-y-auto divide-y divide-neutral-100 rounded-md border border-neutral-200">
+                {mealDbResults.map((r, i) => (
+                  <div key={i} className="flex items-center justify-between p-3 hover:bg-neutral-50">
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold text-neutral-900">{r.name}</span>
+                      <span className="text-xs text-neutral-500">{r.description || r.source}</span>
+                    </div>
+                    <Button
+                      size="sm"
+                      className="bg-primary text-white hover:bg-primary/90 rounded px-3 py-1 text-xs font-medium"
+                      onPress={() => handleImportFromMealDb(r)}
+                    >
+                      {t.mealDbImport}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </Card.Content>
+      </Card>
+
+      {/* Paste Recipe / AI Parser Card */}
       <Card className="border border-neutral-200 bg-white rounded-lg shadow-xs overflow-hidden">
         <Card.Content className="p-4">
           <TextField
@@ -315,7 +405,14 @@ function RecipeRow({ t, record, onOpenDetail }: RecipeRowProps) {
       className="flex w-full min-w-0 cursor-[var(--cursor-interactive)] items-center gap-3 border-b border-separator px-4 py-3 text-left last:border-b-0 hover:bg-surface-secondary focus-visible:focus-ring"
     >
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-medium">{recipeName(recipe, t)}</span>
+        <span className="flex items-center gap-2">
+          <span className="block truncate text-sm font-medium text-neutral-900">{recipeName(recipe, t)}</span>
+          {recipe.source && recipe.source.includes('TheMealDB') ? (
+            <span className="rounded bg-primary/10 px-1.5 py-0.2 text-[10px] font-bold text-primary">
+              TheMealDB
+            </span>
+          ) : null}
+        </span>
         <span className="block text-xs text-muted">{recipeSummary(recipe, t)}</span>
       </span>
       <IconChevronRight className="size-4 shrink-0 text-muted" />

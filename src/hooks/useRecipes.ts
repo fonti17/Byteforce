@@ -10,7 +10,7 @@ import {
 import type { Recipe, RecipeLibraryFile, RecipeOptions, StoredRecipe } from '../types/recipe';
 
 /** Which converter produced the most recent import. */
-export type RecipeSource = 'model' | 'local';
+export type RecipeSource = 'model' | 'local' | 'themealdb';
 
 export interface RecipeImportResult {
   record: StoredRecipe;
@@ -36,8 +36,7 @@ export function useRecipes(options: RecipeOptions = {}) {
   const [source, setSource] = useState<RecipeSource | null>(null);
   const [error, setError] = useState<Error | null>(null);
 
-  // Callers pass an options literal, which would otherwise re-create `importText`
-  // on every render.
+  // Callers pass an options literal, which would otherwise re-create `importText` on every render.
   const optionsRef = useRef(options);
   useEffect(() => {
     optionsRef.current = options;
@@ -61,8 +60,7 @@ export function useRecipes(options: RecipeOptions = {}) {
   const upsert = useCallback(async (record: StoredRecipe): Promise<StoredRecipe> => {
     await recipeStore.put(record);
     setRecipes((current) => [record, ...current.filter((entry) => entry.id !== record.id)]);
-    // An edit that reopens a required value — an emptied serving count — takes
-    // the recipe back out of the event, because it can no longer be scaled.
+    // An edit that reopens a required value takes the recipe back out of the event.
     if (!isRecipeComplete(record.recipe)) {
       setSelectedIds((current) => current.filter((entry) => entry !== record.id));
     }
@@ -70,8 +68,28 @@ export function useRecipes(options: RecipeOptions = {}) {
   }, []);
 
   /**
-   * Converts pasted text into a stored recipe. Apertus is the primary converter;
-   * if it is unreachable the deterministic parser still keeps the app usable.
+   * Search TheMealDB for recipes.
+   */
+  const searchMealDb = useCallback(async (query: string): Promise<Recipe[]> => {
+    const trimmed = query.trim();
+    if (!trimmed) return [];
+    return recipeService.lookupMealDb(trimmed);
+  }, []);
+
+  /**
+   * Directly import a recipe from TheMealDB into stored recipes.
+   */
+  const importMealDbRecipe = useCallback(
+    async (recipe: Recipe): Promise<StoredRecipe> => {
+      setSource('themealdb');
+      return upsert(toStoredRecipe(recipe));
+    },
+    [upsert]
+  );
+
+  /**
+   * Converts pasted text or dish names into a stored recipe.
+   * If a candidate dish exists in TheMealDB, TheMealDB database recipe is preferred.
    */
   const importText = useCallback(
     async (text: string): Promise<RecipeImportResult | null> => {
@@ -80,6 +98,21 @@ export function useRecipes(options: RecipeOptions = {}) {
 
       setIsImporting(true);
       setError(null);
+
+      // If the input is a single line / dish title, check TheMealDB first
+      if (!input.includes('\n') && input.length < 80) {
+        try {
+          const dbMatches = await recipeService.lookupMealDb(input);
+          if (dbMatches.length > 0) {
+            setSource('themealdb');
+            const record = await upsert(toStoredRecipe(dbMatches[0]));
+            return { record, source: 'themealdb' };
+          }
+        } catch {
+          // Continue to standard conversion
+        }
+      }
+
       try {
         const turn = await recipeService.convert(input, optionsRef.current);
         setSource('model');
@@ -113,9 +146,7 @@ export function useRecipes(options: RecipeOptions = {}) {
   }, []);
 
   /**
-   * Picks a recipe for the event. A recipe with an open required value stays
-   * unselected — the app asks for the missing entry first, rather than scaling
-   * the quantities off a guessed serving count.
+   * Picks a recipe for the event. A recipe with an open required value stays unselected.
    */
   const toggleSelected = useCallback(
     (id: string): void => {
@@ -136,40 +167,38 @@ export function useRecipes(options: RecipeOptions = {}) {
   }, [recipes]);
 
   /**
-   * Accepts both file shapes: a library export, and a single recipe as
-   * `config/recipeConfig.json` describes it — which is what the detail screen
-   * downloads.
+   * Accepts both file shapes: a library export, and a single recipe.
    */
-  const importLibrary = useCallback(async (raw: string): Promise<number> => {
-    const parsed: unknown = JSON.parse(raw);
-    const candidates = Array.isArray(parsed)
-      ? parsed
-      : ((parsed as RecipeLibraryFile | null)?.recipes ?? []);
-    const valid = candidates.filter(isStoredRecipe);
+  const importLibrary = useCallback(
+    async (raw: string): Promise<number> => {
+      const parsed: unknown = JSON.parse(raw);
+      const candidates = Array.isArray(parsed)
+        ? parsed
+        : ((parsed as RecipeLibraryFile | null)?.recipes ?? []);
+      const valid = candidates.filter(isStoredRecipe);
 
-    if (valid.length === 0) {
-      // A single recipe file goes through the same normalisation as a pasted one.
-      await upsert(toStoredRecipe(parseRecipe(raw)));
-      return 1;
-    }
+      if (valid.length === 0) {
+        await upsert(toStoredRecipe(parseRecipe(raw)));
+        return 1;
+      }
 
-    setRecipes((current) => {
-      const byId = new Map(current.map((entry) => [entry.id, entry]));
-      for (const entry of valid) byId.set(entry.id, entry);
-      const merged = [...byId.values()].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-      void recipeStore.replaceAll(merged);
-      return merged;
-    });
-    return valid.length;
-  }, [upsert]);
+      setRecipes((current) => {
+        const byId = new Map(current.map((entry) => [entry.id, entry]));
+        for (const entry of valid) byId.set(entry.id, entry);
+        const merged = [...byId.values()].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+        void recipeStore.replaceAll(merged);
+        return merged;
+      });
+      return valid.length;
+    },
+    [upsert]
+  );
 
   const selected = useMemo(
     () => recipes.filter((entry) => selectedIds.includes(entry.id)),
     [recipes, selectedIds]
   );
 
-  // Referentially stable while the selection does not change, so the planner
-  // does not re-run part 2 on every render.
   const selectedRecipes = useMemo(() => selected.map((entry) => entry.recipe), [selected]);
 
   return {
@@ -182,6 +211,8 @@ export function useRecipes(options: RecipeOptions = {}) {
     source,
     error,
     importText,
+    searchMealDb,
+    importMealDbRecipe,
     save,
     remove,
     toggleSelected,

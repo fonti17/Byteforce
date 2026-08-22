@@ -216,6 +216,15 @@ export const strings = {
     qRecipeIngredients: 'Welche Zutaten gehören ins Rezept?',
     recipeServingsHint: 'Ohne diese Angabe lassen sich die Mengen nicht auf deine Gästezahl hochrechnen.',
     recipeIngredientsHint: 'Zutaten mit Menge ergänzt du im Bearbeiten-Formular.',
+    mealDbSearch: 'TheMealDB durchsuchen',
+    mealDbSearchPlaceholder: 'Gericht in TheMealDB suchen (z.B. Arrabiata, Curry) …',
+    mealDbSearching: 'TheMealDB wird durchsucht …',
+    mealDbNotFound: 'Kein passendes Rezept in TheMealDB gefunden.',
+    mealDbFound: (count: number) =>
+      count === 1 ? '1 Rezept in TheMealDB gefunden' : `${count} Rezepte in TheMealDB gefunden`,
+    mealDbSource: 'TheMealDB',
+    mealDbImport: 'Aus TheMealDB übernehmen',
+    beverageSauceBadge: 'KI Direkt-Generierung (Getränke/Saucen)',
   },
   en: {
     brand: 'Catering Planner',
@@ -428,6 +437,15 @@ export const strings = {
     qRecipeIngredients: 'Which ingredients belong to this recipe?',
     recipeServingsHint: 'Without it the quantities cannot be scaled to your guest count.',
     recipeIngredientsHint: 'Ingredients with amounts are added in the edit form.',
+    mealDbSearch: 'Search TheMealDB',
+    mealDbSearchPlaceholder: 'Search dish in TheMealDB (e.g. Arrabiata, Curry) …',
+    mealDbSearching: 'Searching TheMealDB …',
+    mealDbNotFound: 'No matching recipe found in TheMealDB.',
+    mealDbFound: (count: number) =>
+      count === 1 ? '1 recipe found in TheMealDB' : `${count} recipes found in TheMealDB`,
+    mealDbSource: 'TheMealDB',
+    mealDbImport: 'Import from TheMealDB',
+    beverageSauceBadge: 'AI Direct Generation (Beverages/Sauces)',
   },
 };
 

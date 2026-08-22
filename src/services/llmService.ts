@@ -4,7 +4,7 @@ import type {
   LLMRequestOptions,
   LLMResponse,
   LLMStreamChunk,
-} from '../types/llm';
+} from '../types/llm.ts';
 
 export class LLMServiceError extends Error {
   status?: number;
@@ -25,27 +25,34 @@ interface ModelConfig {
   apiKey: string;
 }
 
+const env: Record<string, string | undefined> =
+  typeof import.meta !== 'undefined' && import.meta.env
+    ? (import.meta.env as unknown as Record<string, string | undefined>)
+    : typeof globalThis !== 'undefined' && (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env
+      ? (globalThis as { process?: { env?: Record<string, string | undefined> } }).process!.env!
+      : {};
+
 const APERTUS_CONFIGS = {
   '8b': {
-    modelName: import.meta.env.VITE_APERTUS_8B_MODEL || 'apertus-ai/Apertus-v1.5-8B',
+    modelName: env.VITE_APERTUS_8B_MODEL || 'apertus-ai/Apertus-v1.5-8B',
     directEndpoint:
-      import.meta.env.VITE_APERTUS_8B_ENDPOINT ||
+      env.VITE_APERTUS_8B_ENDPOINT ||
       'https://llm.stoney-cloud.com/v1/chat/completions',
     proxyEndpoint: '/api/stoney/v1/chat/completions',
-    apiKey: import.meta.env.VITE_APERTUS_8B_KEY || '',
+    apiKey: env.VITE_APERTUS_8B_KEY || '',
   },
   '70b': {
-    modelName: import.meta.env.VITE_APERTUS_70B_MODEL || 'apertus-v1.5-70b',
+    modelName: env.VITE_APERTUS_70B_MODEL || 'apertus-v1.5-70b',
     directEndpoint:
-      import.meta.env.VITE_APERTUS_70B_ENDPOINT ||
+      env.VITE_APERTUS_70B_ENDPOINT ||
       'https://llm-api2.b.onprem.ai/openai/v1/chat/completions',
     proxyEndpoint: '/api/onprem/openai/v1/chat/completions',
-    apiKey: import.meta.env.VITE_APERTUS_70B_KEY || '',
+    apiKey: env.VITE_APERTUS_70B_KEY || '',
   },
 };
 
 function resolveModelConfig(model?: LLMModel): ModelConfig {
-  const selected = model || import.meta.env.VITE_DEFAULT_LLM_MODEL || 'apertus-70b';
+  const selected = model || env.VITE_DEFAULT_LLM_MODEL || 'apertus-70b';
 
   if (selected === 'apertus-8b' || selected === 'apertus-ai/Apertus-v1.5-8B' || selected === '8b') {
     return APERTUS_CONFIGS['8b'];
@@ -59,7 +66,7 @@ function resolveEndpoint(config: ModelConfig, useProxyOption?: boolean): string 
   // Use dev proxy when running in Vite dev server to bypass browser CORS preflight restrictions
   const preferProxy =
     useProxyOption ??
-    (import.meta.env.DEV && import.meta.env.VITE_USE_PROXY !== 'false');
+    (env.DEV && env.VITE_USE_PROXY !== 'false');
 
   return preferProxy ? config.proxyEndpoint : config.directEndpoint;
 }

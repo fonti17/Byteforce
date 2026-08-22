@@ -23,7 +23,14 @@ interface PriceApiResponse {
   ingredients: PriceApiEntry[];
 }
 
-const endpoint = import.meta.env.VITE_PRICE_SERVICE_ENDPOINT ?? '/api/prodega/prices';
+const env: Record<string, string | undefined> =
+  typeof import.meta !== 'undefined' && import.meta.env
+    ? (import.meta.env as unknown as Record<string, string | undefined>)
+    : typeof globalThis !== 'undefined' && (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env
+      ? (globalThis as { process?: { env?: Record<string, string | undefined> } }).process!.env!
+      : {};
+
+const endpoint = env.VITE_PRICE_SERVICE_ENDPOINT ?? '/api/prodega/prices';
 
 class PriceService {
   async enrich(plan: CateringPlan): Promise<PricedCateringPlan> {
