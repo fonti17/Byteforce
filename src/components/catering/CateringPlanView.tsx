@@ -9,8 +9,13 @@ interface CateringPlanViewProps {
   result: GatheringResult;
   plan: CateringPlan | null;
   isPlanning: boolean;
+  /** Number of recipes folded into this plan, shown as provenance. */
+  usedRecipes: number;
+  /** The model was unreachable and the plan came from the recipes alone. */
+  usedLocalPlan: boolean;
   error: Error | null;
   onRetry: () => void;
+  onOpenRecipes: () => void;
   onBack: () => void;
   onRestart: () => void;
 }
@@ -57,13 +62,19 @@ export function CateringPlanView({
   result,
   plan,
   isPlanning,
+  usedRecipes,
+  usedLocalPlan,
   error,
   onRetry,
+  onOpenRecipes,
   onBack,
   onRestart,
 }: CateringPlanViewProps) {
   const groups = plan ? groupByCategory(plan.shoppingList, t.uncategorised) : [];
-  const withinBudget = plan ? plan.budget.estimatedTotal <= result.budget.amount : false;
+  const withinBudget =
+    plan !== null &&
+    plan.budget.estimatedTotal > 0 &&
+    plan.budget.estimatedTotal <= result.budget.amount;
 
   return (
     <div className="flex flex-col gap-6">
@@ -78,7 +89,21 @@ export function CateringPlanView({
         <Typography.Paragraph className="text-muted">
           {t.planSubtitle(result.participantCount)}
         </Typography.Paragraph>
+        {usedRecipes > 0 ? (
+          <Chip variant="soft" className="w-fit">
+            <Chip.Label>{`${t.recipeFromRecipes}: ${t.recipeSelected(usedRecipes)}`}</Chip.Label>
+          </Chip>
+        ) : null}
       </div>
+
+      {usedLocalPlan ? (
+        <Alert status="warning">
+          <Alert.Indicator />
+          <Alert.Content>
+            <Alert.Description>{t.planLocalNotice}</Alert.Description>
+          </Alert.Content>
+        </Alert>
+      ) : null}
 
       {isPlanning ? (
         <Card className="flex flex-col items-center gap-3 p-8 text-center">
@@ -174,12 +199,14 @@ export function CateringPlanView({
               {t.budgetSection}
             </Typography.Heading>
             <Card className="flex flex-col gap-3 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-sm text-muted">{t.estimatedTotal}</span>
-                <span className="text-lg font-bold tabular-nums">
-                  {formatMoney(plan.budget.estimatedTotal, plan.budget.currency, language)}
-                </span>
-              </div>
+              {plan.budget.estimatedTotal > 0 ? (
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm text-muted">{t.estimatedTotal}</span>
+                  <span className="text-lg font-bold tabular-nums">
+                    {formatMoney(plan.budget.estimatedTotal, plan.budget.currency, language)}
+                  </span>
+                </div>
+              ) : null}
               <Chip color={withinBudget ? 'success' : 'warning'} variant="soft" className="w-fit">
                 <Chip.Label>
                   {`${t.labelBudget}: ${formatMoney(result.budget.amount, result.budget.currency, language)}`}
@@ -198,6 +225,9 @@ export function CateringPlanView({
       <div className="flex flex-wrap gap-2">
         <Button variant="outline" onPress={onBack}>
           {t.backToBrief}
+        </Button>
+        <Button variant="outline" onPress={onOpenRecipes}>
+          {t.recipeOpen}
         </Button>
         <Button variant="ghost" className="text-muted" onPress={onRestart}>
           {t.restart}

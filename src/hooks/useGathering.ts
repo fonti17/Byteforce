@@ -14,7 +14,14 @@ import type {
   GatheringUpdates,
 } from '../types/gathering';
 
-export type PlannerStep = 'landing' | 'brief' | 'input' | 'result' | 'plan';
+export type PlannerStep =
+  | 'landing'
+  | 'brief'
+  | 'input'
+  | 'result'
+  | 'plan'
+  | 'recipes'
+  | 'recipeDetail';
 
 /** Which extractor produced the most recent read of a free-text message. */
 export type ExtractionSource = 'model' | 'local';
