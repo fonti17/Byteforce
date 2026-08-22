@@ -85,7 +85,13 @@ async function fetchWithJar(url: string): Promise<{ url: string; status: number;
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
 
-    storeCookies(target.host, response.headers.getSetCookie());
+    const setCookies =
+      typeof response.headers.getSetCookie === 'function'
+        ? response.headers.getSetCookie()
+        : response.headers.get('set-cookie')
+          ? [response.headers.get('set-cookie')!]
+          : [];
+    storeCookies(target.host, setCookies);
 
     const location = response.headers.get('location');
     if (response.status >= 300 && response.status < 400 && location) {
