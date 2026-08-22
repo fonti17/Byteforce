@@ -34,13 +34,13 @@ const BASE_HEADERS: Record<string, string> = {
 };
 
 const MAX_REDIRECTS = 12;
-const REQUEST_TIMEOUT_MS = 20_000;
+const REQUEST_TIMEOUT_MS = 10_000;
 /** Politeness gap between two catalog requests, mirroring the scraper's rate limit. */
-const MIN_REQUEST_GAP_MS = 350;
+const MIN_REQUEST_GAP_MS = 150;
 const CACHE_TTL_MS = 15 * 60 * 1000;
 
 /** Ingredients looked up at the same time inside one batch. */
-const BATCH_CONCURRENCY = 6;
+const BATCH_CONCURRENCY = 8;
 /** Longest shopping list one request may carry, so an invocation stays bounded. */
 export const MAX_BATCH_SIZE = 60;
 

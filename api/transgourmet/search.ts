@@ -58,112 +58,125 @@ export default async function handler(
   req: VercelNodeRequest | Request,
   res?: VercelNodeResponse
 ): Promise<Response | void> {
-  // 1. Vercel Node.js Serverless runtime (req: IncomingMessage, res: ServerResponse)
-  if (res && (typeof res.status === 'function' || typeof res.setHeader === 'function')) {
-    const nodeReq = req as VercelNodeRequest;
-    res.setHeader('Content-Type', 'application/json; charset=utf-8');
-    res.setHeader('Cache-Control', 'no-store');
+  try {
+    // 1. Vercel Node.js Serverless runtime (req: IncomingMessage, res: ServerResponse)
+    if (res && (typeof res.status === 'function' || typeof res.setHeader === 'function')) {
+      const nodeReq = req as VercelNodeRequest;
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-store');
 
-    const method = (nodeReq.method ?? 'GET').toUpperCase();
+      const method = (nodeReq.method ?? 'GET').toUpperCase();
 
-    if (method === 'GET') {
-      const url = new URL(nodeReq.url ?? '/', `https://${nodeReq.headers?.host ?? 'localhost'}`);
-      const query = (nodeReq.query?.q as string | undefined) ?? url.searchParams.get('q') ?? '';
-      const limitRaw = nodeReq.query?.limit ?? url.searchParams.get('limit');
-      const limit = clampLimit(limitRaw);
+      if (method === 'GET') {
+        const url = new URL(nodeReq.url ?? '/', `https://${nodeReq.headers?.host ?? 'localhost'}`);
+        const query = (nodeReq.query?.q as string | undefined) ?? url.searchParams.get('q') ?? '';
+        const limitRaw = nodeReq.query?.limit ?? url.searchParams.get('limit');
+        const limit = clampLimit(limitRaw);
 
-      if (!query.trim()) {
-        res.statusCode = 400;
-        res.end(JSON.stringify({ error: 'Missing search term' }));
-        return;
+        if (!query.trim()) {
+          res.statusCode = 400;
+          res.end(JSON.stringify({ error: 'Missing search term' }));
+          return;
+        }
+
+        try {
+          const result = await searchCatalog(query, limit);
+          res.statusCode = 200;
+          res.end(JSON.stringify(result));
+          return;
+        } catch (err) {
+          console.error(`[transgourmet] GET "${query}" failed:`, err);
+          res.statusCode = 502;
+          res.end(JSON.stringify({ error: err instanceof Error ? err.message : 'Catalog request failed' }));
+          return;
+        }
       }
 
-      try {
-        const result = await searchCatalog(query, limit);
-        res.statusCode = 200;
-        res.end(JSON.stringify(result));
-        return;
-      } catch (err) {
-        console.error(`[transgourmet] GET "${query}" failed:`, err);
-        res.statusCode = 502;
-        res.end(JSON.stringify({ error: err instanceof Error ? err.message : 'Catalog request failed' }));
-        return;
+      if (method === 'POST') {
+        const body = await parseBody(nodeReq);
+        if (!body || typeof body !== 'object') {
+          res.statusCode = 400;
+          res.end(JSON.stringify({ error: 'Body is not valid JSON' }));
+          return;
+        }
+
+        const payload = body as { ingredients?: unknown; limit?: unknown };
+        if (!Array.isArray(payload.ingredients)) {
+          res.statusCode = 400;
+          res.end(JSON.stringify({ error: 'Expected an "ingredients" array' }));
+          return;
+        }
+
+        const ingredients = payload.ingredients
+          .filter((entry): entry is string => typeof entry === 'string')
+          .map((entry) => entry.trim())
+          .filter((entry) => entry !== '');
+
+        if (ingredients.length === 0) {
+          res.statusCode = 200;
+          res.end(JSON.stringify({ results: [] }));
+          return;
+        }
+
+        if (ingredients.length > MAX_BATCH_SIZE) {
+          res.statusCode = 400;
+          res.end(JSON.stringify({ error: `At most ${MAX_BATCH_SIZE} ingredients per request` }));
+          return;
+        }
+
+        const limit = clampLimit(payload.limit);
+        try {
+          const results = await candidatesForAll(ingredients, limit);
+          res.statusCode = 200;
+          res.end(JSON.stringify({ results }));
+          return;
+        } catch (err) {
+          console.error(`[transgourmet] POST batch of ${ingredients.length} failed:`, err);
+          res.statusCode = 502;
+          res.end(JSON.stringify({ error: err instanceof Error ? err.message : 'Catalog request failed' }));
+          return;
+        }
       }
+
+      res.statusCode = 405;
+      res.setHeader('Allow', 'GET, POST');
+      res.end(JSON.stringify({ error: 'Method not allowed' }));
+      return;
     }
 
-    if (method === 'POST') {
-      const body = await parseBody(nodeReq);
-      if (!body || typeof body !== 'object') {
-        res.statusCode = 400;
-        res.end(JSON.stringify({ error: 'Body is not valid JSON' }));
-        return;
-      }
-
-      const payload = body as { ingredients?: unknown; limit?: unknown };
-      if (!Array.isArray(payload.ingredients)) {
-        res.statusCode = 400;
-        res.end(JSON.stringify({ error: 'Expected an "ingredients" array' }));
-        return;
-      }
-
-      const ingredients = payload.ingredients
-        .filter((entry): entry is string => typeof entry === 'string')
-        .map((entry) => entry.trim())
-        .filter((entry) => entry !== '');
-
-      if (ingredients.length === 0) {
-        res.statusCode = 200;
-        res.end(JSON.stringify({ results: [] }));
-        return;
-      }
-
-      if (ingredients.length > MAX_BATCH_SIZE) {
-        res.statusCode = 400;
-        res.end(JSON.stringify({ error: `At most ${MAX_BATCH_SIZE} ingredients per request` }));
-        return;
-      }
-
-      const limit = clampLimit(payload.limit);
-      try {
-        const results = await candidatesForAll(ingredients, limit);
-        res.statusCode = 200;
-        res.end(JSON.stringify({ results }));
-        return;
-      } catch (err) {
-        console.error(`[transgourmet] POST batch of ${ingredients.length} failed:`, err);
-        res.statusCode = 502;
-        res.end(JSON.stringify({ error: err instanceof Error ? err.message : 'Catalog request failed' }));
-        return;
-      }
+    // 2. Web standard Fetch API (Edge runtime)
+    const request = req as Request;
+    if (request.method === 'GET') {
+      const url = new URL(request.url);
+      const query = url.searchParams.get('q') ?? '';
+      const limit = clampLimit(url.searchParams.get('limit'));
+      if (!query.trim()) return new Response(JSON.stringify({ error: 'Missing search term' }), { status: 400 });
+      const result = await searchCatalog(query, limit);
+      return new Response(JSON.stringify(result), { status: 200, headers: { 'Content-Type': 'application/json' } });
     }
 
-    res.statusCode = 405;
-    res.setHeader('Allow', 'GET, POST');
-    res.end(JSON.stringify({ error: 'Method not allowed' }));
-    return;
-  }
-
-  // 2. Web standard Fetch API (Edge runtime)
-  const request = req as Request;
-  if (request.method === 'GET') {
-    const url = new URL(request.url);
-    const query = url.searchParams.get('q') ?? '';
-    const limit = clampLimit(url.searchParams.get('limit'));
-    if (!query.trim()) return new Response(JSON.stringify({ error: 'Missing search term' }), { status: 400 });
-    const result = await searchCatalog(query, limit);
-    return new Response(JSON.stringify(result), { status: 200, headers: { 'Content-Type': 'application/json' } });
-  }
-
-  if (request.method === 'POST') {
-    const body = (await request.json().catch(() => null)) as { ingredients?: unknown; limit?: unknown } | null;
-    if (!body || !Array.isArray(body.ingredients)) {
-      return new Response(JSON.stringify({ error: 'Expected an "ingredients" array' }), { status: 400 });
+    if (request.method === 'POST') {
+      const body = (await request.json().catch(() => null)) as { ingredients?: unknown; limit?: unknown } | null;
+      if (!body || !Array.isArray(body.ingredients)) {
+        return new Response(JSON.stringify({ error: 'Expected an "ingredients" array' }), { status: 400 });
+      }
+      const ingredients = body.ingredients.filter((e): e is string => typeof e === 'string' && e.trim() !== '');
+      const limit = clampLimit(body.limit);
+      const results = await candidatesForAll(ingredients, limit);
+      return new Response(JSON.stringify({ results }), { status: 200, headers: { 'Content-Type': 'application/json' } });
     }
-    const ingredients = body.ingredients.filter((e): e is string => typeof e === 'string' && e.trim() !== '');
-    const limit = clampLimit(body.limit);
-    const results = await candidatesForAll(ingredients, limit);
-    return new Response(JSON.stringify({ results }), { status: 200, headers: { 'Content-Type': 'application/json' } });
-  }
 
-  return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 });
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 });
+  } catch (fatalError) {
+    console.error('[transgourmet] Fatal serverless error:', fatalError);
+    if (res && typeof res.end === 'function') {
+      res.statusCode = 500;
+      res.end(JSON.stringify({ error: fatalError instanceof Error ? fatalError.message : 'Server error' }));
+      return;
+    }
+    return new Response(
+      JSON.stringify({ error: fatalError instanceof Error ? fatalError.message : 'Server error' }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
 }
