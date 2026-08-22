@@ -49,3 +49,22 @@ export interface GatheringTurn extends GatheringState {
 export interface GatheringOptions extends LLMRequestOptions {
   language?: 'de' | 'en';
 }
+
+/**
+ * Schema-shaped payload produced once every required field is present.
+ * Mirrors `config/gatheringConfig.json` exactly, including `additionalProperties: false`.
+ */
+export interface GatheringResult {
+  eventType: EventType;
+  date: {
+    day: number;
+    month: number;
+    year: number | null;
+  };
+  participantCount: number;
+  meal: MealType;
+  budget: {
+    amount: number;
+    currency: string;
+  };
+}
