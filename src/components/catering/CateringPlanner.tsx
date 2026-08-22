@@ -25,6 +25,8 @@ import { strings, type Language } from './strings';
  */
 export function CateringPlanner() {
   const [language, setLanguage] = useState<Language>('de');
+  const [plannerMode, setPlannerMode] = useState<'private' | 'business'>('private');
+  const [targetMargin, setTargetMargin] = useState<number | null>(null);
   const t = strings[language];
 
   const gatheringOptions = useMemo(
@@ -46,51 +48,50 @@ export function CateringPlanner() {
     uncertain,
   } = gathering;
 
+  const [onlyOwnRecipes, setOnlyOwnRecipes] = useState(false);
+
   const recipeOptions = useMemo(() => ({ language }), [language]);
   const recipes = useRecipes(recipeOptions);
   const { clearSelection, selectedRecipes } = recipes;
 
+  // If no recipes are selected, onlyOwnRecipes cannot be active.
+  const isOnlyOwnActive = onlyOwnRecipes && selectedRecipes.length > 0;
+
   // Recipes are part of the plan input, so a changed selection re-runs part 2.
+  // When isOnlyOwnActive is true, we switch to the compact model 'apertus-8b'
+  // for scaling and quantity derivation without generating new recipes.
   const planOptions = useMemo(
     () => ({
       language,
-      model: 'apertus-70b',
+      model: isOnlyOwnActive ? 'apertus-8b' : 'apertus-70b',
       temperature: 0.2,
-      maxTokens: 1800,
+      maxTokens: isOnlyOwnActive ? 800 : 1800,
       recipes: selectedRecipes,
+      onlyOwnRecipes: isOnlyOwnActive,
     }),
-    [language, selectedRecipes]
+    [language, selectedRecipes, isOnlyOwnActive]
   );
 
-  // Where the recipe views return to. The list and the detail screen open each
-  // other, so a single slot would be overwritten by the second hop and leave
-  // back pointing at the screen it is already on — a dead end. A trail keeps
-  // every way out; revisiting a step folds the loop away instead of stacking it.
+  // Where the recipe views return to, as a stack so deep jumps back (e.g. from
+  // a detail screen reached via the full catalogue) step back through each screen.
   const [recipeReturnTrail, setRecipeReturnTrail] = useState<PlannerStep[]>([]);
   const [detailRecipeId, setDetailRecipeId] = useState<string | null>(null);
 
-  const pushReturnStep = useCallback((returnStep: PlannerStep) => {
-    setRecipeReturnTrail((trail) => {
-      const seen = trail.indexOf(returnStep);
-      return seen === -1 ? [...trail, returnStep] : trail.slice(0, seen + 1);
-    });
-  }, []);
-
   const openRecipes = useCallback(
     (returnStep: PlannerStep) => {
-      pushReturnStep(returnStep);
+      setRecipeReturnTrail((prev) => [...prev, returnStep]);
       setStep('recipes');
     },
-    [pushReturnStep, setStep]
+    [setStep]
   );
 
   const openRecipeDetail = useCallback(
     (id: string, returnStep: PlannerStep) => {
       setDetailRecipeId(id);
-      pushReturnStep(returnStep);
+      setRecipeReturnTrail((prev) => [...prev, returnStep]);
       setStep('recipeDetail');
     },
-    [pushReturnStep, setStep]
+    [setStep]
   );
 
   /** Leaves a recipe view for the step it was opened from; landing is the floor. */
@@ -142,7 +143,7 @@ export function CateringPlanner() {
     plannedForRef.current = null;
     resetPlan();
     clearSelection();
-    setRecipeReturnTrail([]);
+    setTargetMargin(null);
     reset();
   }, [clearSelection, reset, resetPlan]);
 
@@ -200,11 +201,16 @@ export function CateringPlanner() {
   }, [openQuestionList, startQuestions]);
 
   const handleAnalyse = useCallback(
-    async (message: string) => {
+    async (message: string, margin?: number | null) => {
+      if (plannerMode === 'business') {
+        setTargetMargin(typeof margin === 'number' && margin > 0 ? margin : null);
+      } else {
+        setTargetMargin(null);
+      }
       await analyse(message);
       setStep('brief');
     },
-    [analyse, setStep]
+    [analyse, plannerMode, setStep]
   );
 
   const handleQuestionAnalyse = useCallback(
@@ -233,7 +239,34 @@ export function CateringPlanner() {
             <span className="text-neutral-300">|</span>
             <span className="text-sm font-bold tracking-tight text-neutral-800 uppercase">{t.brand}</span>
           </div>
-          <div className="flex items-center gap-2">
+
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Private vs Business mode toggle switch */}
+            <div className="flex items-center rounded-lg border border-neutral-300 bg-white p-0.5 text-xs font-semibold shadow-xs">
+              <button
+                type="button"
+                onClick={() => setPlannerMode('private')}
+                className={`rounded px-2.5 py-1 transition-colors ${
+                  plannerMode === 'private'
+                    ? 'bg-primary text-white shadow-xs'
+                    : 'text-neutral-600 hover:text-neutral-900'
+                }`}
+              >
+                {t.modePrivate}
+              </button>
+              <button
+                type="button"
+                onClick={() => setPlannerMode('business')}
+                className={`rounded px-2.5 py-1 transition-colors ${
+                  plannerMode === 'business'
+                    ? 'bg-primary text-white shadow-xs'
+                    : 'text-neutral-600 hover:text-neutral-900'
+                }`}
+              >
+                {t.modeBusiness}
+              </button>
+            </div>
+
             <Button
               variant="outline"
               size="sm"
@@ -247,15 +280,20 @@ export function CateringPlanner() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-4xl w-full px-4 pt-6 pb-20 sm:px-6 flex-1">
+      <main className={`mx-auto w-full px-4 pt-6 pb-20 sm:px-6 flex-1 transition-all ${
+        step === 'plan' ? 'max-w-7xl' : 'max-w-4xl'
+      }`}>
         {step === 'landing' ? (
           <PlannerLanding
             t={t}
             language={language}
+            plannerMode={plannerMode}
             isAnalysing={gathering.isAnalysing}
+            onlyOwnRecipes={isOnlyOwnActive}
+            onToggleOnlyOwnRecipes={setOnlyOwnRecipes}
             recipes={recipes.recipes}
             selectedIds={recipes.selectedIds}
-            onAnalyse={(message) => void handleAnalyse(message)}
+            onAnalyse={(message, targetMargin) => void handleAnalyse(message, targetMargin)}
             onToggleRecipe={recipes.toggleSelected}
             onOpenRecipe={(id) => openRecipeDetail(id, 'landing')}
             onOpenRecipes={() => openRecipes('landing')}
@@ -348,7 +386,9 @@ export function CateringPlanner() {
             plan={plan}
             isPlanning={isPlanning}
             streamedText={streamedText}
-            usedRecipes={selectedRecipes.length}
+            usedRecipes={recipes.selectedIds.length}
+            targetMargin={targetMargin}
+            onlyOwnRecipes={isOnlyOwnActive}
             usedLocalPlan={planSource === 'local'}
             error={planError}
             onRetry={() => runPlan(result)}
