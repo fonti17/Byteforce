@@ -9,6 +9,7 @@ interface CateringPlanViewProps {
   result: GatheringResult;
   plan: CateringPlan | null;
   isPlanning: boolean;
+  streamedText: string;
   /** Number of recipes folded into this plan, shown as provenance. */
   usedRecipes: number;
   /** The model was unreachable and the plan came from the recipes alone. */
@@ -62,6 +63,7 @@ export function CateringPlanView({
   result,
   plan,
   isPlanning,
+  streamedText,
   usedRecipes,
   usedLocalPlan,
   error,
@@ -110,6 +112,11 @@ export function CateringPlanView({
           <Spinner />
           <span className="text-sm font-medium">{t.planning}</span>
           <span className="text-xs text-muted">{t.planningHint}</span>
+          {streamedText ? (
+            <pre className="max-h-32 w-full overflow-auto text-left text-[11px] text-muted">
+              {streamedText}
+            </pre>
+          ) : null}
         </Card>
       ) : null}
 
@@ -219,6 +226,19 @@ export function CateringPlanView({
               ) : null}
             </Card>
           </section>
+
+          {plan.reasoning ? (
+            <section className="flex flex-col gap-2">
+              <Typography.Heading level={2} className="text-sm font-semibold text-muted">
+                {t.reasoningSection}
+              </Typography.Heading>
+              <Card className="p-4">
+                <Typography.Paragraph className="whitespace-pre-line text-sm text-muted">
+                  {plan.reasoning}
+                </Typography.Paragraph>
+              </Card>
+            </section>
+          ) : null}
         </>
       ) : null}
 

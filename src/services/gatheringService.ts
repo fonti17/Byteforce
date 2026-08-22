@@ -12,21 +12,28 @@ import type {
   GatheringStatus,
   GatheringTurn,
   GatheringUpdates,
+  GatheringUncertainty,
   MealType,
 } from '../types/gathering';
 
 const REQUIRED_FIELDS: GatheringField[] = [
   'eventType',
-  'date.day',
-  'date.month',
   'participantCount',
   'meal',
   'budget.amount',
   'budget.currency',
 ];
+const OPTIONAL_FIELDS: GatheringField[] = ['date.day', 'date.month', 'date.year', 'context'];
 
 const EVENT_TYPES = new Set<EventType>(['private', 'business', 'team_event', 'other']);
-const MEALS = new Set<MealType>(['breakfast', 'lunch', 'dinner', 'other']);
+const MEALS = new Set<MealType>([
+  'breakfast',
+  'lunch',
+  'dinner',
+  'apero',
+  'buffet',
+  'other',
+]);
 const MONTHS: Record<string, number> = {
   januar: 1,
   februar: 2,
@@ -61,6 +68,7 @@ export function createInitialGatheringData(): GatheringData {
     participantCount: null,
     meal: null,
     budget: { amount: null, currency: null },
+    context: null,
   };
 }
 
@@ -84,6 +92,7 @@ export function buildGatheringResult(data: GatheringData): GatheringResult | nul
       amount: data.budget.amount as number,
       currency: data.budget.currency as string,
     },
+    context: data.context,
   };
 }
 
@@ -97,6 +106,7 @@ function valueAt(data: GatheringData, field: GatheringField): unknown {
     case 'meal': return data.meal;
     case 'budget.amount': return data.budget.amount;
     case 'budget.currency': return data.budget.currency;
+    case 'context': return data.context;
   }
 }
 
@@ -134,6 +144,8 @@ function normalizeUpdate(field: GatheringField, value: unknown): unknown {
       return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : undefined;
     case 'budget.currency':
       return normalizeCurrency(value) ?? undefined;
+    case 'context':
+      return typeof value === 'string' && value.trim() !== '' ? value.trim() : undefined;
   }
 }
 
@@ -147,6 +159,7 @@ function setValue(data: GatheringData, field: GatheringField, value: unknown): v
     case 'meal': data.meal = value as MealType; break;
     case 'budget.amount': data.budget.amount = value as number; break;
     case 'budget.currency': data.budget.currency = value as string; break;
+    case 'context': data.context = value as string; break;
   }
 }
 
@@ -158,7 +171,7 @@ export function applyGatheringUpdates(
   const updates: GatheringUpdates = {};
 
   for (const [path, proposedValue] of Object.entries(proposedUpdates)) {
-    if (!REQUIRED_FIELDS.includes(path as GatheringField) && path !== 'date.year') continue;
+    if (!REQUIRED_FIELDS.includes(path as GatheringField) && !OPTIONAL_FIELDS.includes(path as GatheringField)) continue;
     const field = path as GatheringField;
     const value = normalizeUpdate(field, proposedValue);
     if (value === undefined || Object.is(valueAt(data, field), value)) continue;
@@ -206,6 +219,8 @@ export function extractDeterministicUpdates(
   if (/\b(frühstück|fruehstueck|breakfast)\b/u.test(normalized)) updates.meal = 'breakfast';
   else if (/\b(mittagessen|lunch|mittags essen)\b/u.test(normalized)) updates.meal = 'lunch';
   else if (/\b(abendessen|dinner|abends essen|am abend essen)\b/u.test(normalized)) updates.meal = 'dinner';
+  else if (/\b(apéro|apero|aperitif)\b/u.test(normalized)) updates.meal = 'apero';
+  else if (/\bbuffet\b/u.test(normalized)) updates.meal = 'buffet';
 
   const budgetMatch = text.match(/(\d[\d\s']*(?:[.,]\d+)?)\s*(CHF|EUR|USD)\b/u);
   if (budgetMatch) {
@@ -242,6 +257,63 @@ export function parseModelUpdates(content: string): GatheringUpdates {
     : {};
 }
 
+interface ModelExtraction {
+  updates: GatheringUpdates;
+  context?: string;
+  uncertain: GatheringUncertainty[];
+}
+
+function parseModelExtraction(content: string): ModelExtraction | null {
+  const parsed = extractJsonObject(content);
+  if (!parsed || (parsed.updates !== undefined &&
+      (!parsed.updates || typeof parsed.updates !== 'object' || Array.isArray(parsed.updates)))) {
+    return null;
+  }
+
+  const uncertain = Array.isArray(parsed.uncertain)
+    ? parsed.uncertain.flatMap((entry) => {
+        if (!entry || typeof entry !== 'object') return [];
+        const record = entry as Record<string, unknown>;
+        return typeof record.reason === 'string' && record.reason.trim()
+          ? [{
+              field: typeof record.field === 'string' ? record.field as GatheringField : undefined,
+              reason: record.reason.trim(),
+            }]
+          : [];
+      })
+    : [];
+
+  return {
+    updates: parseModelUpdates(content),
+    context: typeof parsed.context === 'string' ? parsed.context.trim() : undefined,
+    uncertain,
+  };
+}
+
+function normalizeContext(value: string | undefined, current: string | null): string | null {
+  const context = value?.trim();
+  return context ? context : current;
+}
+
+async function requestExtraction(
+  userTurn: LLMMessage,
+  options: GatheringOptions,
+  systemPrompt: string
+) {
+  const requestOptions = {
+    ...options,
+    model: options.model ?? 'apertus-8b',
+    temperature: options.temperature ?? 0,
+    maxTokens: options.maxTokens ?? 250,
+    systemPrompt,
+  };
+  const response = await llmService.chat([userTurn], requestOptions);
+  if (parseModelExtraction(response.content)) return response;
+
+  // One bounded retry handles malformed JSON without creating an unbounded loop.
+  return llmService.chat([userTurn], requestOptions);
+}
+
 function sanitizeModelUpdates(
   currentData: GatheringData,
   expectedField: GatheringField | null,
@@ -252,7 +324,7 @@ function sanitizeModelUpdates(
 
   for (const [path, value] of Object.entries(modelUpdates)) {
     const field = path as GatheringField;
-    if (!REQUIRED_FIELDS.includes(field) && field !== 'date.year') continue;
+    if (!REQUIRED_FIELDS.includes(field) && !OPTIONAL_FIELDS.includes(field)) continue;
 
     // These two fields are especially prone to unwanted inference.
     if ((field === 'meal' || field === 'date.year') && deterministicUpdates[field] === undefined) {
@@ -280,7 +352,7 @@ function questionFor(field: GatheringField, language: GatheringOptions['language
       'date.day': 'An welchem Tag findet der Anlass statt?',
       'date.month': 'In welchem Monat findet der Anlass statt?',
       participantCount: 'Wie viele Personen nehmen ungefähr teil?',
-      meal: 'Soll es ein Frühstück, Mittagessen oder Abendessen sein?',
+      meal: 'Soll es ein Frühstück, Mittagessen, Abendessen, Apéro oder Buffet sein?',
       'budget.amount': 'Welches maximale Budget steht für Essen und Getränke zur Verfügung?',
       'budget.currency': 'In welcher Währung ist das Budget angegeben?',
     },
@@ -289,7 +361,7 @@ function questionFor(field: GatheringField, language: GatheringOptions['language
       'date.day': 'On which day does the event take place?',
       'date.month': 'In which month does the event take place?',
       participantCount: 'Approximately how many people will attend?',
-      meal: 'Would you like breakfast, lunch, or dinner?',
+      meal: 'Would you like breakfast, lunch, dinner, an aperitif, or a buffet?',
       'budget.amount': 'What is the maximum budget for food and beverages?',
       'budget.currency': 'In which currency is the budget?',
     },
@@ -304,10 +376,10 @@ function buildSystemPrompt(): string {
     'Never invent or infer ambiguous information.',
     '',
     'Return only JSON in this format:',
-    '{"updates":{"field.path":"value"}}',
+    '{"updates":{"field.path":"value"},"context":"optional preferences and constraints","uncertain":[]}',
     '',
     'Allowed fields:',
-    JSON.stringify([...REQUIRED_FIELDS, 'date.year']),
+    JSON.stringify([...REQUIRED_FIELDS, ...OPTIONAL_FIELDS]),
     '',
     'Rules:',
     '- Prefer expectedField when it is present; interpret a short answer as the answer to that field.',
@@ -317,6 +389,9 @@ function buildSystemPrompt(): string {
     '- "Teamessen" and "Teamevent" map to eventType="team_event". "Firmenessen" maps to eventType="business".',
     '- "Firmenessen" and "zum Essen kommen" do not imply meal="dinner".',
     '- "am Abend essen" and "Abendessen" map to meal="dinner".',
+    '- "Apéro" and "Aperitif" map to meal="apero". "Buffet" maps to meal="buffet".',
+    '- Put dietary requirements, preferences, drinks, cuisine, and other constraints in context.',
+    '- Report ambiguous interpretations in uncertain as {"field":"field.path","reason":"..."}.',
     '- Split "2500 CHF" into budget.amount=2500 and budget.currency="CHF".',
     '- Do not return status, missing fields, questions, markdown, or prose.',
     '',
@@ -328,7 +403,7 @@ function buildSystemPrompt(): string {
 export const gatheringService = {
   createState(initialData: GatheringData = createInitialGatheringData()): GatheringState {
     const expectedField = getMissingRequiredFields(initialData)[0] ?? null;
-    return { data: initialData, messages: [], expectedField };
+    return { data: initialData, messages: [], originalRequest: null, expectedField };
   },
 
   async process(
@@ -342,27 +417,32 @@ export const gatheringService = {
     const currentState = state ?? this.createState();
     const extractionRequest = {
       currentState: currentState.data,
+      originalRequest: currentState.originalRequest ?? message,
       expectedField: currentState.expectedField,
       userMessage: message,
     };
     const userTurn: LLMMessage = { role: 'user', content: JSON.stringify(extractionRequest) };
-    const response = await llmService.chat([userTurn], {
-      ...options,
-      model: options.model ?? 'apertus-70b',
-      temperature: 0,
-      maxTokens: options.maxTokens ?? 300,
-      systemPrompt: buildSystemPrompt(),
-    });
+    const response = await requestExtraction(userTurn, options, buildSystemPrompt());
 
     const deterministic = extractDeterministicUpdates(message, currentState.expectedField);
+    const extraction = parseModelExtraction(response.content) ?? {
+      updates: {},
+      uncertain: [],
+    };
     const modelUpdates = sanitizeModelUpdates(
       currentState.data,
       currentState.expectedField,
       deterministic,
-      parseModelUpdates(response.content)
+      extraction.updates
     );
     const proposed = { ...modelUpdates, ...deterministic };
-    const { data, updates } = applyGatheringUpdates(currentState.data, proposed);
+    const { data: updatedData, updates } = applyGatheringUpdates(currentState.data, proposed);
+    const data = updatedData;
+    const context = normalizeContext(extraction.context, data.context);
+    if (context !== data.context) {
+      data.context = context;
+      updates.context = context;
+    }
     const missingRequiredFields = getMissingRequiredFields(data);
     const status: GatheringStatus = missingRequiredFields.length === 0 ? 'complete' : 'incomplete';
     const expectedField = missingRequiredFields[0] ?? null;
@@ -375,11 +455,13 @@ export const gatheringService = {
     return {
       data,
       messages: [...currentState.messages, { role: 'user', content: message }, assistantTurn],
+      originalRequest: currentState.originalRequest ?? message,
       expectedField,
       status,
       updates,
       missingRequiredFields,
       nextQuestion,
+      uncertain: extraction.uncertain,
       response,
     };
   },

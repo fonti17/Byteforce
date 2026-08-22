@@ -12,6 +12,7 @@ import type {
   GatheringField,
   GatheringOptions,
   GatheringUpdates,
+  GatheringUncertainty,
 } from '../types/gathering';
 
 export type PlannerStep =
@@ -31,6 +32,7 @@ export interface AnalyseResult {
   data: GatheringData;
   updates: GatheringUpdates;
   source: ExtractionSource;
+  uncertain: GatheringUncertainty[];
 }
 
 /**
@@ -41,6 +43,8 @@ export function useGathering(options: GatheringOptions = {}) {
   const [data, setData] = useState<GatheringData>(createInitialGatheringData);
   const [step, setStep] = useState<PlannerStep>('landing');
   const [source, setSource] = useState<ExtractionSource | null>(null);
+  const [originalRequest, setOriginalRequest] = useState<string | null>(null);
+  const [uncertain, setUncertain] = useState<AnalyseResult['uncertain']>([]);
   const [isAnalysing, setIsAnalysing] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
@@ -71,7 +75,7 @@ export function useGathering(options: GatheringOptions = {}) {
   const analyse = useCallback(
     async (message: string, expectedField?: GatheringField | null): Promise<AnalyseResult> => {
       const text = message.trim();
-      if (!text) return { data, updates: {}, source: 'local' };
+      if (!text) return { data, updates: {}, source: 'local', uncertain: [] };
 
       const field =
         expectedField !== undefined ? expectedField : (getMissingRequiredFields(data)[0] ?? null);
@@ -81,30 +85,46 @@ export function useGathering(options: GatheringOptions = {}) {
       try {
         const turn = await gatheringService.process(
           text,
-          { data, messages: [], expectedField: field },
+          {
+            data,
+            messages: [],
+            originalRequest,
+            expectedField: field,
+          },
           optionsRef.current
         );
         setData(turn.data);
+        setOriginalRequest(turn.originalRequest);
+        setUncertain(turn.uncertain);
         setSource('model');
-        return { data: turn.data, updates: turn.updates, source: 'model' };
+        return {
+          data: turn.data,
+          updates: turn.updates,
+          source: 'model',
+          uncertain: turn.uncertain,
+        };
       } catch (caught) {
         setError(caught instanceof Error ? caught : new Error('Extraction failed'));
         const deterministic = extractDeterministicUpdates(text, field);
         const next = applyGatheringUpdates(data, deterministic);
         setData(next.data);
+        setOriginalRequest(originalRequest ?? text);
+        setUncertain([]);
         setSource('local');
-        return { data: next.data, updates: next.updates, source: 'local' };
+        return { data: next.data, updates: next.updates, source: 'local', uncertain: [] };
       } finally {
         setIsAnalysing(false);
       }
     },
-    [data]
+    [data, originalRequest]
   );
 
   const reset = useCallback(() => {
     setData(createInitialGatheringData());
     setStep('landing');
     setSource(null);
+    setOriginalRequest(null);
+    setUncertain([]);
     setError(null);
   }, []);
 
@@ -115,6 +135,8 @@ export function useGathering(options: GatheringOptions = {}) {
     step,
     setStep,
     source,
+    originalRequest,
+    uncertain,
     isAnalysing,
     error,
     analyse,

@@ -6,7 +6,8 @@
   "required": [
     "menu",
     "shoppingList",
-    "budget"
+    "budget",
+    "reasoning"
   ],
   "properties": {
     "menu": {
@@ -110,6 +111,10 @@
         }
       },
       "additionalProperties": false
+    },
+    "reasoning": {
+      "type": "string",
+      "description": "Explanation of how the proposal handles the budget, preferences, constraints, and any requests that could not be fulfilled exactly."
     }
   },
   "additionalProperties": false

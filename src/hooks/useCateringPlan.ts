@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { cateringPlanService } from '../services/cateringPlanService';
 import { buildPlanFromRecipes } from '../services/recipeService';
-import type { CateringPlan, CateringPlanOptions } from '../types/cateringPlan';
+import type { CateringPlan, CateringPlanInput, CateringPlanOptions } from '../types/cateringPlan';
 import type { GatheringResult } from '../types/gathering';
 
 /** Which side produced the plan currently on screen. */
@@ -14,6 +14,7 @@ export type PlanSource = 'model' | 'local';
 export function useCateringPlan(options: CateringPlanOptions = {}) {
   const [plan, setPlan] = useState<CateringPlan | null>(null);
   const [isPlanning, setIsPlanning] = useState(false);
+  const [streamedText, setStreamedText] = useState('');
   const [source, setSource] = useState<PlanSource | null>(null);
   const [error, setError] = useState<Error | null>(null);
 
@@ -24,17 +25,21 @@ export function useCateringPlan(options: CateringPlanOptions = {}) {
     optionsRef.current = options;
   });
 
-  // Generation is auto-started from an effect, so a second call while a request
-  // is still open (StrictMode, a re-render) must not fire another request.
+  // A second call while a request is still open must not fire another request.
   const pendingRef = useRef(false);
 
-  const generate = useCallback(async (result: GatheringResult): Promise<CateringPlan | null> => {
+  const generate = useCallback(async (result: GatheringResult | CateringPlanInput): Promise<CateringPlan | null> => {
     if (pendingRef.current) return null;
     pendingRef.current = true;
     setIsPlanning(true);
     setError(null);
+    setStreamedText('');
     try {
-      const turn = await cateringPlanService.plan(result, optionsRef.current);
+      const turn = await cateringPlanService.stream(
+        result,
+        optionsRef.current,
+        setStreamedText
+      );
       setPlan(turn.plan);
       setSource('model');
       return turn.plan;
@@ -43,7 +48,10 @@ export function useCateringPlan(options: CateringPlanOptions = {}) {
       // unreachable model costs the cost estimate, not the shopping list.
       const recipes = optionsRef.current.recipes ?? [];
       if (recipes.length > 0) {
-        const local = buildPlanFromRecipes(recipes, result);
+        const gatheringResult = ('gatheringState' in result
+          ? result.gatheringState
+          : result) as GatheringResult;
+        const local = buildPlanFromRecipes(recipes, gatheringResult);
         setPlan(local);
         setSource('local');
         return local;
@@ -59,8 +67,9 @@ export function useCateringPlan(options: CateringPlanOptions = {}) {
   const reset = useCallback(() => {
     setPlan(null);
     setSource(null);
+    setStreamedText('');
     setError(null);
   }, []);
 
-  return { plan, isPlanning, source, error, generate, reset };
+  return { plan, isPlanning, streamedText, source, error, generate, reset };
 }
