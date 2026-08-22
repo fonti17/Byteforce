@@ -5,7 +5,6 @@
   "type": "object",
   "required": [
     "eventType",
-    "date",
     "participantCount",
     "meal",
     "budget"
@@ -28,12 +27,18 @@
       ],
       "properties": {
         "day": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 1,
           "maximum": 31
         },
         "month": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 1,
           "maximum": 12
         },
@@ -57,6 +62,8 @@
         "breakfast",
         "lunch",
         "dinner",
+        "apero",
+        "buffet",
         "other"
       ]
     },
@@ -77,6 +84,13 @@
         }
       },
       "additionalProperties": false
+    },
+    "context": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Optional preferences, dietary requirements, constraints, and other useful details."
     }
   },
   "additionalProperties": false

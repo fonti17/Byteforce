@@ -1,7 +1,7 @@
 import type { LLMMessage, LLMRequestOptions, LLMResponse } from './llm';
 
 export type EventType = 'private' | 'business' | 'team_event' | 'other';
-export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'other';
+export type MealType = 'breakfast' | 'lunch' | 'dinner' |'apero'|'buffet'| 'other';
 
 export interface GatheringData {
   eventType: EventType | null;
@@ -16,6 +16,8 @@ export interface GatheringData {
     amount: number | null;
     currency: string | null;
   };
+  /** Free-form preferences and constraints that do not fit the fixed fields. */
+  context: string | null;
 }
 
 export type GatheringField =
@@ -25,6 +27,7 @@ export type GatheringField =
   | 'date.year'
   | 'participantCount'
   | 'meal'
+  | 'context'
   | 'budget.amount'
   | 'budget.currency';
 
@@ -34,8 +37,14 @@ export type GatheringUpdates = Partial<Record<GatheringField, unknown>>;
 export interface GatheringState {
   data: GatheringData;
   messages: LLMMessage[];
+  originalRequest: string | null;
   /** Field addressed by the most recent backend-generated question. */
   expectedField: GatheringField | null;
+}
+
+export interface GatheringUncertainty {
+  field?: GatheringField;
+  reason: string;
 }
 
 export interface GatheringTurn extends GatheringState {
@@ -43,6 +52,7 @@ export interface GatheringTurn extends GatheringState {
   updates: GatheringUpdates;
   missingRequiredFields: GatheringField[];
   nextQuestion: string | null;
+  uncertain: GatheringUncertainty[];
   response: LLMResponse;
 }
 
@@ -57,8 +67,8 @@ export interface GatheringOptions extends LLMRequestOptions {
 export interface GatheringResult {
   eventType: EventType;
   date: {
-    day: number;
-    month: number;
+    day: number | null;
+    month: number | null;
     year: number | null;
   };
   participantCount: number;
@@ -67,4 +77,5 @@ export interface GatheringResult {
     amount: number;
     currency: string;
   };
+  context: string | null;
 }

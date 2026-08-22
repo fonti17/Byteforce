@@ -55,6 +55,7 @@ export function ChatTester() {
       setGatheringState({
         data: turn.data,
         messages: turn.messages,
+        originalRequest: turn.originalRequest,
         expectedField: turn.expectedField,
       });
       if (turn.status === 'complete') {

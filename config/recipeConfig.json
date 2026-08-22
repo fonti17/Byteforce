@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Recipe",
+  "description": "A single stored recipe. Ingredient entries use the same keys and units as the shopping list in cateringPlanConfig.json, so a recipe can be scaled to the participant count and merged into a catering plan without conversion.",
+  "type": "object",
+  "required": [
+    "name",
+    "servings",
+    "ingredients"
+  ],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Short name of the dish."
+    },
+    "description": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "One or two sentences about the dish."
+    },
+    "servings": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Number of people the listed ingredient quantities are meant for."
+    },
+    "course": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "starter",
+        "main",
+        "side",
+        "dessert",
+        "drink",
+        "snack",
+        null
+      ],
+      "description": "Where the dish belongs in the menu."
+    },
+    "diet": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "vegetarian",
+          "vegan",
+          "gluten_free",
+          "lactose_free",
+          "nut_free"
+        ]
+      },
+      "description": "Diets the recipe satisfies as written."
+    },
+    "ingredients": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "ingredient",
+          "quantity",
+          "unit"
+        ],
+        "properties": {
+          "ingredient": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "description": "Quantity for the stated servings, not for the event."
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "g",
+              "kg",
+              "ml",
+              "l",
+              "piece",
+              "pack"
+            ]
+          },
+          "category": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional shopping category, for example vegetables or dairy."
+          },
+          "note": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional preparation hint, for example finely chopped."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Preparation steps in order, one sentence each."
+    },
+    "source": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Where the recipe came from, for example a URL or a cookbook."
+    }
+  },
+  "additionalProperties": false
+}

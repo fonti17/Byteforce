@@ -9,7 +9,7 @@ import {
   SuccessIcon,
   Typography,
 } from '@heroui/react';
-import type { GatheringData } from '../../types/gathering';
+import type { GatheringData, GatheringUncertainty } from '../../types/gathering';
 import { QUESTION_ORDER, formatAnswer, questionLabel, type QuestionId } from './fields';
 import type { Language, Strings } from './strings';
 
@@ -19,6 +19,7 @@ interface MissingValuesProps {
   data: GatheringData;
   openQuestionCount: number;
   usedLocalExtraction: boolean;
+  uncertain: GatheringUncertainty[];
   onBack: () => void;
   onContinue: () => void;
   onEdit: (question: QuestionId) => void;
@@ -34,6 +35,7 @@ export function MissingValues({
   data,
   openQuestionCount,
   usedLocalExtraction,
+  uncertain,
   onBack,
   onContinue,
   onEdit,
@@ -66,6 +68,20 @@ export function MissingValues({
           <Alert.Indicator />
           <Alert.Content>
             <Alert.Description>{t.offlineNotice}</Alert.Description>
+          </Alert.Content>
+        </Alert>
+      ) : null}
+
+      {uncertain.length > 0 ? (
+        <Alert status="warning">
+          <Alert.Indicator />
+          <Alert.Content>
+            <Alert.Title>{t.uncertainTitle}</Alert.Title>
+            {uncertain.map((item, index) => (
+              <Alert.Description key={`${item.field ?? 'unknown'}-${index}`}>
+                {item.reason}
+              </Alert.Description>
+            ))}
           </Alert.Content>
         </Alert>
       ) : null}

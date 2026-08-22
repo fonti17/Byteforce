@@ -9,8 +9,14 @@ interface CateringPlanViewProps {
   result: GatheringResult;
   plan: PricedCateringPlan | null;
   isPlanning: boolean;
+  streamedText: string;
+  /** Number of recipes folded into this plan, shown as provenance. */
+  usedRecipes: number;
+  /** The model was unreachable and the plan came from the recipes alone. */
+  usedLocalPlan: boolean;
   error: Error | null;
   onRetry: () => void;
+  onOpenRecipes: () => void;
   onBack: () => void;
   onRestart: () => void;
 }
@@ -57,8 +63,12 @@ export function CateringPlanView({
   result,
   plan,
   isPlanning,
+  streamedText,
+  usedRecipes,
+  usedLocalPlan,
   error,
   onRetry,
+  onOpenRecipes,
   onBack,
   onRestart,
 }: CateringPlanViewProps) {
@@ -78,13 +88,32 @@ export function CateringPlanView({
         <Typography.Paragraph className="text-muted">
           {t.planSubtitle(result.participantCount)}
         </Typography.Paragraph>
+        {usedRecipes > 0 ? (
+          <Chip variant="soft" className="w-fit">
+            <Chip.Label>{`${t.recipeFromRecipes}: ${t.recipeSelected(usedRecipes)}`}</Chip.Label>
+          </Chip>
+        ) : null}
       </div>
+
+      {usedLocalPlan ? (
+        <Alert status="warning">
+          <Alert.Indicator />
+          <Alert.Content>
+            <Alert.Description>{t.planLocalNotice}</Alert.Description>
+          </Alert.Content>
+        </Alert>
+      ) : null}
 
       {isPlanning ? (
         <Card className="flex flex-col items-center gap-3 p-8 text-center">
           <Spinner />
           <span className="text-sm font-medium">{t.planning}</span>
           <span className="text-xs text-muted">{t.planningHint}</span>
+          {streamedText ? (
+            <pre className="max-h-32 w-full overflow-auto text-left text-[11px] text-muted">
+              {streamedText}
+            </pre>
+          ) : null}
         </Card>
       ) : null}
 
@@ -235,12 +264,28 @@ export function CateringPlanView({
               ) : null}
             </Card>
           </section>
+
+          {plan.reasoning ? (
+            <section className="flex flex-col gap-2">
+              <Typography.Heading level={2} className="text-sm font-semibold text-muted">
+                {t.reasoningSection}
+              </Typography.Heading>
+              <Card className="p-4">
+                <Typography.Paragraph className="whitespace-pre-line text-sm text-muted">
+                  {plan.reasoning}
+                </Typography.Paragraph>
+              </Card>
+            </section>
+          ) : null}
         </>
       ) : null}
 
       <div className="flex flex-wrap gap-2">
         <Button variant="outline" onPress={onBack}>
           {t.backToBrief}
+        </Button>
+        <Button variant="outline" onPress={onOpenRecipes}>
+          {t.recipeOpen}
         </Button>
         <Button variant="ghost" className="text-muted" onPress={onRestart}>
           {t.restart}
