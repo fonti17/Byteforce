@@ -19,9 +19,11 @@ export type PlannerStep =
   | 'landing'
   | 'brief'
   | 'input'
+  | 'result'
   | 'plan'
   | 'recipes'
-  | 'recipeDetail';
+  | 'recipeDetail'
+  | 'projects';
 
 /** Which extractor produced the most recent read of a free-text message. */
 export type ExtractionSource = 'model' | 'local';
@@ -129,6 +131,13 @@ export function useGathering(options: GatheringOptions = {}) {
     setUncertain([]);
   }, []);
 
+  const loadData = useCallback((nextData: GatheringData, request: string | null = null) => {
+    setData(nextData);
+    setOriginalRequest(request);
+    setSource(null);
+    setUncertain([]);
+  }, []);
+
   return {
     data,
     missingFields,
@@ -141,6 +150,7 @@ export function useGathering(options: GatheringOptions = {}) {
     isAnalysing,
     analyse,
     apply,
+    loadData,
     reset,
   };
 }

@@ -36,10 +36,12 @@ interface PlannerLandingProps {
   /** Newest first — only the first few are shown here. */
   recipes: StoredRecipe[];
   selectedIds: string[];
+  savedProjectsCount?: number;
   onAnalyse: (message: string, targetMargin?: number | null) => void;
   onToggleRecipe: (id: string) => void;
   onOpenRecipe: (id: string) => void;
   onOpenRecipes: () => void;
+  onOpenProjects?: () => void;
 }
 
 /**
@@ -56,10 +58,12 @@ export function PlannerLanding({
   onToggleOnlyOwnRecipes,
   recipes,
   selectedIds,
+  savedProjectsCount = 0,
   onAnalyse,
   onToggleRecipe,
   onOpenRecipe,
   onOpenRecipes,
+  onOpenProjects,
 }: PlannerLandingProps) {
   const [message, setMessage] = useState('');
   const [targetMarginStr, setTargetMarginStr] = useState('');
@@ -89,6 +93,27 @@ export function PlannerLanding({
           {t.landingSubtitle}
         </Typography.Paragraph>
       </div>
+
+      {onOpenProjects ? (
+        <div className="flex items-center justify-between rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-2.5 shadow-xs -mt-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-neutral-700">
+              {t.projectsTitle}
+            </span>
+            <span className="rounded bg-neutral-200 px-2 py-0.5 text-[11px] font-bold text-neutral-800 tabular-nums">
+              {savedProjectsCount}
+            </span>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-primary hover:underline font-semibold text-xs p-0 h-auto"
+            onPress={onOpenProjects}
+          >
+            {t.allProjects} →
+          </Button>
+        </div>
+      ) : null}
 
       <Card className="border border-neutral-200 bg-white rounded-lg shadow-xs overflow-hidden">
         <Card.Content className="p-4 sm:p-6 flex flex-col gap-4">

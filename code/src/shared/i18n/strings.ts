@@ -219,6 +219,33 @@ export const strings = {
     qRecipeIngredients: 'Welche Zutaten gehören ins Rezept?',
     recipeServingsHint: 'Ohne diese Angabe lassen sich die Mengen nicht auf deine Gästezahl hochrechnen.',
     recipeIngredientsHint: 'Zutaten mit Menge ergänzt du im Bearbeiten-Formular.',
+    projectsTitle: 'Gespeicherte Projekte',
+    projectsSubtitle: 'Gespeicherte Catering-Pläne und Menüs einsehen, laden oder exportieren.',
+    projectsEmpty: 'Noch keine Catering-Projekte gespeichert.',
+    projectsEmptyHint: 'Sobald ein Menü generiert wurde, kannst du es im Menü-Planer speichern.',
+    projectSave: 'Projekt speichern',
+    projectSaved: 'Projekt gespeichert!',
+    projectSaveUpdate: 'Projekt aktualisieren',
+    projectOpen: 'Projekt laden',
+    projectsOpen: 'Projekte',
+    projectDelete: 'Löschen',
+    projectDeleteTitle: 'Projekt löschen?',
+    projectDeleteBody: (name: string) =>
+      `«${name}» wird endgültig aus deiner Projektliste entfernt.`,
+    projectDeleteConfirm: 'Endgültig löschen',
+    projectExport: 'Projekte sichern',
+    projectImport: 'Projekte laden',
+    projectImported: (count: number) =>
+      count === 1 ? '1 Projekt geladen' : `${count} Projekte geladen`,
+    projectImportError: 'Diese Datei enthielt keine gültigen Projekte.',
+    projectNameLabel: 'Projektname',
+    projectSavedAt: (date: string) => `Gespeichert am ${date}`,
+    projectCoursesCount: (count: number) => (count === 1 ? '1 Gang' : `${count} Gänge`),
+    projectShoppingItems: (count: number) =>
+      count === 1 ? '1 Zutat' : `${count} Zutaten`,
+    allProjects: 'Alle Projekte',
+    savedProjectsCount: (count: number) =>
+      count === 1 ? '1 Projekt' : `${count} Projekte`,
   },
   en: {
     brand: 'Catering Planner',
@@ -435,6 +462,33 @@ export const strings = {
     qRecipeIngredients: 'Which ingredients belong to this recipe?',
     recipeServingsHint: 'Without it the quantities cannot be scaled to your guest count.',
     recipeIngredientsHint: 'Ingredients with amounts are added in the edit form.',
+    projectsTitle: 'Saved Projects',
+    projectsSubtitle: 'View, load or export saved catering plans and menus.',
+    projectsEmpty: 'No saved catering projects yet.',
+    projectsEmptyHint: 'Once a menu is generated, you can save it in the catering planner.',
+    projectSave: 'Save Project',
+    projectSaved: 'Project saved!',
+    projectSaveUpdate: 'Update Project',
+    projectOpen: 'Load Project',
+    projectsOpen: 'Projects',
+    projectDelete: 'Delete',
+    projectDeleteTitle: 'Delete project?',
+    projectDeleteBody: (name: string) =>
+      `“${name}” will be removed from your saved projects permanently.`,
+    projectDeleteConfirm: 'Delete permanently',
+    projectExport: 'Back up projects',
+    projectImport: 'Load projects',
+    projectImported: (count: number) =>
+      count === 1 ? '1 project loaded' : `${count} projects loaded`,
+    projectImportError: 'That file contained no valid projects.',
+    projectNameLabel: 'Project name',
+    projectSavedAt: (date: string) => `Saved on ${date}`,
+    projectCoursesCount: (count: number) => (count === 1 ? '1 course' : `${count} courses`),
+    projectShoppingItems: (count: number) =>
+      count === 1 ? '1 item' : `${count} items`,
+    allProjects: 'All projects',
+    savedProjectsCount: (count: number) =>
+      count === 1 ? '1 project' : `${count} projects`,
   },
 };
 

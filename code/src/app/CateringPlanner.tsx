@@ -3,22 +3,25 @@ import { Button } from '@heroui/react';
 import { useCateringPlan } from '@/features/catering-plan/hooks/useCateringPlan';
 import { useGathering, type PlannerStep } from '@/features/gathering/hooks/useGathering';
 import { useRecipes } from '@/features/recipes/hooks/useRecipes';
+import { useProjects } from '@/features/projects/hooks/useProjects';
 import { buildGatheringResult, getMissingRequiredFields } from '@/features/gathering/gatheringService';
 import { isRecipeComplete } from '@/features/recipes/recipeService';
 import type { GatheringData, GatheringField, GatheringResult } from '@/features/gathering/types';
 import type { Recipe } from '@/features/recipes/types';
+import type { StoredProject } from '@/features/projects/types';
 import { CateringPlanView } from '@/features/catering-plan/components/CateringPlanView';
 import { GatheringInput } from '@/features/gathering/components/GatheringInput';
 import { MissingValues } from '@/features/gathering/components/MissingValues';
 import { PlannerLanding } from './PlannerLanding';
 import { RecipeDetailView } from '@/features/recipes/components/RecipeDetailView';
 import { RecipesView } from '@/features/recipes/components/RecipesView';
+import { ProjectsView } from '@/features/projects/components/ProjectsView';
 import { openQuestions, type QuestionId } from '@/features/gathering/questions';
 import { ProdegaLogo } from '@/shared/ui/ProdegaLogo';
 import { strings, type Language } from '@/shared/i18n/strings';
 
 /**
- * Interactive prototype: Catering Planer → Missing values → Input → the JSON
+ * Interactive prototype: Catering Planer -> Missing values -> Input -> the JSON
  * structure of `gathering.config.json` (part 1), which then feeds part 2 —
  * menu and shopping list, shaped by `cateringPlan.config.json`.
  */
@@ -36,6 +39,7 @@ export function CateringPlanner() {
   const {
     analyse,
     apply,
+    loadData,
     data,
     missingFields,
     originalRequest,
@@ -52,6 +56,11 @@ export function CateringPlanner() {
   const recipeOptions = useMemo(() => ({ language }), [language]);
   const recipes = useRecipes(recipeOptions);
   const { clearSelection, selectedRecipes } = recipes;
+
+  // Projects persistence hook
+  const projects = useProjects();
+  const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
+  const [isProjectSaved, setIsProjectSaved] = useState(false);
 
   // If no recipes are selected, onlyOwnRecipes cannot be active.
   const isOnlyOwnActive = onlyOwnRecipes && selectedRecipes.length > 0;
@@ -71,15 +80,22 @@ export function CateringPlanner() {
     [language, selectedRecipes, isOnlyOwnActive]
   );
 
-  // Where the recipe views return to, as a stack so deep jumps back (e.g. from
-  // a detail screen reached via the full catalogue) step back through each screen.
-  const [recipeReturnTrail, setRecipeReturnTrail] = useState<PlannerStep[]>([]);
+  // Where the secondary views return to, as a stack so deep jumps back step through each screen.
+  const [returnTrail, setReturnTrail] = useState<PlannerStep[]>([]);
   const [detailRecipeId, setDetailRecipeId] = useState<string | null>(null);
 
   const openRecipes = useCallback(
     (returnStep: PlannerStep) => {
-      setRecipeReturnTrail((prev) => [...prev, returnStep]);
+      setReturnTrail((prev) => [...prev, returnStep]);
       setStep('recipes');
+    },
+    [setStep]
+  );
+
+  const openProjects = useCallback(
+    (returnStep: PlannerStep) => {
+      setReturnTrail((prev) => [...prev, returnStep]);
+      setStep('projects');
     },
     [setStep]
   );
@@ -87,17 +103,17 @@ export function CateringPlanner() {
   const openRecipeDetail = useCallback(
     (id: string, returnStep: PlannerStep) => {
       setDetailRecipeId(id);
-      setRecipeReturnTrail((prev) => [...prev, returnStep]);
+      setReturnTrail((prev) => [...prev, returnStep]);
       setStep('recipeDetail');
     },
     [setStep]
   );
 
-  /** Leaves a recipe view for the step it was opened from; landing is the floor. */
-  const closeRecipeView = useCallback(() => {
-    setStep(recipeReturnTrail[recipeReturnTrail.length - 1] ?? 'landing');
-    setRecipeReturnTrail((trail) => trail.slice(0, -1));
-  }, [recipeReturnTrail, setStep]);
+  /** Leaves a secondary view for the step it was opened from; landing is the floor. */
+  const closeSecondaryView = useCallback(() => {
+    setStep(returnTrail[returnTrail.length - 1] ?? 'landing');
+    setReturnTrail((trail) => trail.slice(0, -1));
+  }, [returnTrail, setStep]);
 
   const detailRecord = useMemo(
     () => recipes.recipes.find((entry) => entry.id === detailRecipeId) ?? null,
@@ -113,6 +129,7 @@ export function CateringPlanner() {
 
   const {
     plan,
+    setPlan,
     isPlanning,
     streamedText,
     pricingProgress,
@@ -125,6 +142,7 @@ export function CateringPlanner() {
   const runPlan = useCallback(
     (payload: GatheringResult) => {
       resetPlan();
+      setIsProjectSaved(false);
       void generatePlan({ gatheringState: payload, originalRequest });
     },
     [generatePlan, originalRequest, resetPlan]
@@ -142,8 +160,56 @@ export function CateringPlanner() {
     resetPlan();
     clearSelection();
     setTargetMargin(null);
+    setCurrentProjectId(null);
+    setIsProjectSaved(false);
     reset();
   }, [clearSelection, reset, resetPlan]);
+
+  const handleSaveProject = useCallback(async () => {
+    if (!plan || !result) return;
+    const projectName =
+      plan.menu.name?.trim() || `${t.planTitle} (${result.participantCount} ${t.labelParticipants})`;
+    const saved = await projects.saveProject(
+      {
+        name: projectName,
+        gatheringResult: result,
+        originalRequest,
+        plan,
+        plannerMode,
+        targetMargin,
+        onlyOwnRecipes: isOnlyOwnActive,
+        selectedRecipeIds: recipes.selectedIds,
+      },
+      currentProjectId ?? undefined
+    );
+    setCurrentProjectId(saved.id);
+    setIsProjectSaved(true);
+  }, [plan, result, t.planTitle, t.labelParticipants, projects, originalRequest, plannerMode, targetMargin, isOnlyOwnActive, recipes.selectedIds, currentProjectId]);
+
+  const handleLoadProject = useCallback(
+    (project: StoredProject) => {
+      resetPlan();
+      loadData(
+        {
+          eventType: project.gatheringResult.eventType,
+          date: project.gatheringResult.date,
+          participantCount: project.gatheringResult.participantCount,
+          meal: project.gatheringResult.meal,
+          budget: project.gatheringResult.budget,
+          context: project.gatheringResult.context,
+        },
+        project.originalRequest
+      );
+      setPlannerMode(project.plannerMode);
+      setTargetMargin(project.targetMargin);
+      setOnlyOwnRecipes(project.onlyOwnRecipes);
+      setPlan(project.plan);
+      setCurrentProjectId(project.id);
+      setIsProjectSaved(true);
+      setStep('plan');
+    },
+    [loadData, resetPlan, setPlan, setStep]
+  );
 
   // A newly typed recipe opens on its own detail screen, so it can be checked
   // and picked for the event right away.
@@ -172,11 +238,11 @@ export function CateringPlanner() {
       await recipes.remove(id);
       setDetailRecipeId(null);
       // The deleted recipe has no detail screen left, so the trail skips those.
-      const trail = recipeReturnTrail.filter((entry) => entry !== 'recipeDetail');
+      const trail = returnTrail.filter((entry) => entry !== 'recipeDetail');
       setStep(trail[trail.length - 1] ?? 'recipes');
-      setRecipeReturnTrail(trail.slice(0, -1));
+      setReturnTrail(trail.slice(0, -1));
     },
-    [recipeReturnTrail, recipes, setStep]
+    [returnTrail, recipes, setStep]
   );
 
   const startQuestions = useCallback(
@@ -266,6 +332,23 @@ export function CateringPlanner() {
               </button>
             </div>
 
+            {/* Saved Projects Header Button */}
+            {!isPlanning && !gathering.isAnalysing ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="font-medium text-xs rounded border-neutral-300 text-neutral-700 hover:border-primary hover:text-primary transition-colors flex items-center gap-1.5"
+                onPress={() => openProjects(step)}
+              >
+                <span>{t.projectsOpen}</span>
+                {projects.projects.length > 0 ? (
+                  <span className="rounded bg-neutral-200 px-1.5 py-0.5 text-[10px] font-bold text-neutral-800 tabular-nums">
+                    {projects.projects.length}
+                  </span>
+                ) : null}
+              </Button>
+            ) : null}
+
             <Button
               variant="outline"
               size="sm"
@@ -292,10 +375,12 @@ export function CateringPlanner() {
             onToggleOnlyOwnRecipes={setOnlyOwnRecipes}
             recipes={recipes.recipes}
             selectedIds={recipes.selectedIds}
+            savedProjectsCount={projects.projects.length}
             onAnalyse={(message, margin) => void handleAnalyse(message, margin)}
             onToggleRecipe={recipes.toggleSelected}
             onOpenRecipe={(id) => openRecipeDetail(id, 'landing')}
             onOpenRecipes={() => openRecipes('landing')}
+            onOpenProjects={() => openProjects('landing')}
           />
         ) : null}
 
@@ -344,7 +429,7 @@ export function CateringPlanner() {
             onOpenDetail={(id) => openRecipeDetail(id, 'recipes')}
             onExport={recipes.exportLibrary}
             onImportLibrary={recipes.importLibrary}
-            onBack={closeRecipeView}
+            onBack={closeSecondaryView}
           />
         ) : null}
 
@@ -358,7 +443,20 @@ export function CateringPlanner() {
             onDelete={() => void handleDeleteRecipe(detailRecord.id)}
             onAddNew={() => openRecipes('recipeDetail')}
             onUpload={recipes.importLibrary}
-            onBack={closeRecipeView}
+            onBack={closeSecondaryView}
+          />
+        ) : null}
+
+        {step === 'projects' ? (
+          <ProjectsView
+            t={t}
+            language={language}
+            projects={projects.projects}
+            onOpenProject={handleLoadProject}
+            onDeleteProject={projects.removeProject}
+            onExport={projects.exportLibrary}
+            onImportLibrary={projects.importLibrary}
+            onBack={closeSecondaryView}
           />
         ) : null}
 
@@ -376,6 +474,9 @@ export function CateringPlanner() {
             onlyOwnRecipes={isOnlyOwnActive}
             usedLocalPlan={planSource === 'local'}
             error={planError}
+            isSaved={isProjectSaved}
+            onSaveProject={handleSaveProject}
+            onOpenProjects={() => openProjects('plan')}
             onRetry={() => runPlan(result)}
             onOpenRecipes={() => openRecipes('plan')}
             onBack={() => setStep('brief')}

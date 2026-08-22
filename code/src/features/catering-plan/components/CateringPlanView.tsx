@@ -21,6 +21,9 @@ interface CateringPlanViewProps {
   /** The model was unreachable and the plan came from the recipes alone. */
   usedLocalPlan: boolean;
   error: Error | null;
+  isSaved?: boolean;
+  onSaveProject?: () => void;
+  onOpenProjects?: () => void;
   onRetry: () => void;
   onOpenRecipes: () => void;
   onBack: () => void;
@@ -90,6 +93,9 @@ export function CateringPlanView({
   onlyOwnRecipes = false,
   usedLocalPlan,
   error,
+  isSaved = false,
+  onSaveProject,
+  onOpenProjects,
   onRetry,
   onOpenRecipes,
   onBack,
@@ -106,21 +112,56 @@ export function CateringPlanView({
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="-ml-3 w-fit text-primary hover:underline hover:bg-transparent p-0 text-sm font-medium"
-          onPress={onBack}
-        >
-          <IconChevronLeft />
-          {t.back}
-        </Button>
-        <Typography.Heading level={1} className="text-2xl font-bold tracking-tight text-neutral-900">
-          {t.planTitle}
-        </Typography.Heading>
-        <Typography.Paragraph className="text-sm text-neutral-600">
-          {t.planSubtitle(result.participantCount)}
-        </Typography.Paragraph>
+        <div className="flex items-center justify-between gap-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="-ml-3 w-fit text-primary hover:underline hover:bg-transparent p-0 text-sm font-medium"
+            onPress={onBack}
+          >
+            <IconChevronLeft />
+            {t.back}
+          </Button>
+          {onOpenProjects && !isPlanning ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-neutral-300 text-neutral-700 hover:border-primary hover:text-primary rounded text-xs font-medium"
+              onPress={onOpenProjects}
+            >
+              {t.projectsOpen}
+            </Button>
+          ) : null}
+        </div>
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <Typography.Heading level={1} className="text-2xl font-bold tracking-tight text-neutral-900">
+              {t.planTitle}
+            </Typography.Heading>
+            <Typography.Paragraph className="text-sm text-neutral-600">
+              {t.planSubtitle(result.participantCount)}
+            </Typography.Paragraph>
+          </div>
+
+          {plan && onSaveProject ? (
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                size="sm"
+                isDisabled={isPlanning}
+                className={`rounded px-4 py-2 text-xs font-semibold shadow-xs transition-colors ${
+                  isSaved
+                    ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                    : 'bg-primary text-white hover:bg-primary/90'
+                }`}
+                onPress={onSaveProject}
+              >
+                {isSaved ? `✓ ${t.projectSaved}` : t.projectSave}
+              </Button>
+            </div>
+          ) : null}
+        </div>
+
         <div className="flex flex-wrap items-center gap-2 mt-1">
           {usedRecipes > 0 ? (
             <Chip variant="soft" className="w-fit bg-neutral-200 text-neutral-800 text-xs font-semibold rounded">
@@ -360,7 +401,29 @@ export function CateringPlanView({
         </div>
       ) : null}
 
-      <div className="flex flex-wrap gap-2 pt-2 border-t border-neutral-200">
+      <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-neutral-200">
+        {plan && onSaveProject ? (
+          <Button
+            isDisabled={isPlanning}
+            className={`rounded px-4 py-2 text-xs font-semibold shadow-xs transition-colors ${
+              isSaved
+                ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                : 'bg-primary text-white hover:bg-primary/90'
+            }`}
+            onPress={onSaveProject}
+          >
+            {isSaved ? `✓ ${t.projectSaved}` : t.projectSave}
+          </Button>
+        ) : null}
+        {onOpenProjects && !isPlanning ? (
+          <Button
+            variant="outline"
+            onPress={onOpenProjects}
+            className="border-neutral-300 text-neutral-800 hover:border-primary hover:text-primary rounded text-xs font-medium"
+          >
+            {t.projectsOpen}
+          </Button>
+        ) : null}
         <Button
           variant="outline"
           isDisabled={isPlanning}

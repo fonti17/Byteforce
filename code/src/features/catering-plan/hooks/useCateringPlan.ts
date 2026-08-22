@@ -120,5 +120,5 @@ export function useCateringPlan(options: CateringPlanOptions = {}) {
     setError(null);
   }, []);
 
-  return { plan, isPlanning, streamedText, source, pricingProgress, error, generate, reset };
+  return { plan, setPlan, isPlanning, streamedText, source, pricingProgress, error, generate, reset };
 }
