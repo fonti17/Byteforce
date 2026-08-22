@@ -3,10 +3,9 @@ import {
   Alert,
   Button,
   Card,
-  CircleDashedIcon,
   IconChevronLeft,
+  IconChevronRight,
   Spinner,
-  SuccessIcon,
   TextArea,
   TextField,
   Typography,
@@ -15,6 +14,7 @@ import type { Recipe, RecipeLibraryFile, StoredRecipe } from '../../types/recipe
 import type { RecipeSource } from '../../hooks/useRecipes';
 import { emptyRecipe } from '../../services/recipeService';
 import { RecipeEditor } from './RecipeEditor';
+import { recipeName, recipeSummary } from './fields';
 import type { Language, Strings } from './strings';
 
 /** Pasted in the shape people actually copy from a website or a chat message. */
@@ -57,14 +57,12 @@ interface RecipesViewProps {
   t: Strings;
   language: Language;
   recipes: StoredRecipe[];
-  selectedIds: string[];
   isImporting: boolean;
   source: RecipeSource | null;
   error: Error | null;
   onImportText: (text: string) => void;
   /** Saves a recipe typed in by hand and opens its detail screen. */
   onCreate: (recipe: Recipe) => void;
-  onToggle: (id: string) => void;
   onOpenDetail: (id: string) => void;
   onExport: () => RecipeLibraryFile;
   onImportLibrary: (raw: string) => Promise<number>;
@@ -73,21 +71,18 @@ interface RecipesViewProps {
 
 /**
  * Recipe library — pasted text becomes the structure of
- * `config/recipeConfig.json`, is stored in the browser, and can be picked for
- * the current event. Chosen recipes are scaled to the participant count and
- * merged into the shopping list of `config/cateringPlanConfig.json`.
+ * `config/recipeConfig.json` and is stored in the browser. Managing recipes
+ * happens here; picking them for an event happens on the landing page.
  */
 export function RecipesView({
   t,
   language,
   recipes,
-  selectedIds,
   isImporting,
   source,
   error,
   onImportText,
   onCreate,
-  onToggle,
   onOpenDetail,
   onExport,
   onImportLibrary,
@@ -228,9 +223,7 @@ export function RecipesView({
           <Typography.Heading level={2} className="text-sm font-semibold text-muted">
             {t.recipeLibrary}
           </Typography.Heading>
-          <span className="text-xs text-muted">
-            {selectedIds.length > 0 ? t.recipeSelected(selectedIds.length) : t.recipeNoneSelected}
-          </span>
+          <span className="text-xs text-muted">{t.recipeCount(recipes.length)}</span>
         </div>
 
         {recipes.length === 0 ? (
@@ -246,8 +239,6 @@ export function RecipesView({
                 key={record.id}
                 t={t}
                 record={record}
-                isSelected={selectedIds.includes(record.id)}
-                onToggleSelected={() => onToggle(record.id)}
                 onOpenDetail={() => onOpenDetail(record.id)}
               />
             ))}
@@ -260,6 +251,7 @@ export function RecipesView({
       </section>
 
       <div className="flex flex-wrap gap-2">
+        {/* The backup file holds the whole library, so it needs one stored recipe. */}
         <Button variant="outline" isDisabled={recipes.length === 0} onPress={exportLibrary}>
           {t.recipeExport}
         </Button>
@@ -285,38 +277,27 @@ export function RecipesView({
 interface RecipeRowProps {
   t: Strings;
   record: StoredRecipe;
-  isSelected: boolean;
-  onToggleSelected: () => void;
   onOpenDetail: () => void;
 }
 
-/** Tapping the row picks the recipe for the event; the button opens its detail. */
-function RecipeRow({ t, record, isSelected, onToggleSelected, onOpenDetail }: RecipeRowProps) {
+/**
+ * The library row only opens the recipe — a recipe is picked for an event on the
+ * landing page, so nothing here changes the selection.
+ */
+function RecipeRow({ t, record, onOpenDetail }: RecipeRowProps) {
   const { recipe } = record;
 
   return (
-    <div className="flex items-center gap-1 border-b border-separator pr-2 last:border-b-0">
-      <button
-        type="button"
-        onClick={onToggleSelected}
-        aria-pressed={isSelected}
-        className="flex min-w-0 flex-1 cursor-[var(--cursor-interactive)] items-center gap-3 px-4 py-3 text-left hover:bg-surface-secondary focus-visible:focus-ring"
-      >
-        {isSelected ? (
-          <SuccessIcon className="size-4 shrink-0 text-success" />
-        ) : (
-          <CircleDashedIcon className="size-4 shrink-0 text-muted" />
-        )}
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-medium">{recipe.name}</span>
-          <span className="block text-xs text-muted">
-            {`${t.recipeServings(recipe.servings)} · ${t.recipeIngredients(recipe.ingredients.length)}`}
-          </span>
-        </span>
-      </button>
-      <Button variant="outline" size="sm" className="shrink-0" onPress={onOpenDetail}>
-        {t.recipeDetails}
-      </Button>
-    </div>
+    <button
+      type="button"
+      onClick={onOpenDetail}
+      className="flex w-full min-w-0 cursor-[var(--cursor-interactive)] items-center gap-3 border-b border-separator px-4 py-3 text-left last:border-b-0 hover:bg-surface-secondary focus-visible:focus-ring"
+    >
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-medium">{recipeName(recipe, t)}</span>
+        <span className="block text-xs text-muted">{recipeSummary(recipe, t)}</span>
+      </span>
+      <IconChevronRight className="size-4 shrink-0 text-muted" />
+    </button>
   );
 }

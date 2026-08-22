@@ -12,12 +12,13 @@ import type {
   Recipe,
   RecipeCourse,
   RecipeDiet,
+  RecipeField,
   RecipeIngredient,
   RecipeOptions,
   RecipeTurn,
   StoredRecipe,
 } from '../types/recipe';
-import { RECIPE_COURSES, RECIPE_DIETS } from '../types/recipe';
+import { RECIPE_COURSES, RECIPE_DIETS, RECIPE_REQUIRED_FIELDS } from '../types/recipe';
 import type { LLMResponse } from '../types/llm';
 
 export class RecipeError extends Error {
@@ -184,11 +185,13 @@ export function parseRecipe(content: string, fallbackName = ''): Recipe {
     throw new RecipeError('The recipe response held no usable ingredients.', content);
   }
 
+  // A missing serving count stays missing: the app asks for it rather than
+  // scaling the event quantities off a guessed number.
   const servings = asNumber(parsed.servings);
   return {
     name: asText(parsed.name) ?? fallbackName,
     description: asText(parsed.description),
-    servings: servings !== null && servings >= 1 ? Math.round(servings) : 4,
+    servings: servings !== null && servings >= 1 ? Math.round(servings) : null,
     course: parseCourse(parsed.course),
     diet: parseDiet(parsed.diet),
     ingredients,
@@ -222,7 +225,7 @@ function parseAmount(raw: string): number | null {
 
 function parseServings(text: string): number | null {
   const match = text.match(
-    /(?:für\s+)?(\d{1,3})\s*(?:personen|portionen|port\.|servings|serves|people|guests)/iu
+    /(?:für\s+)?(\d{1,3})\s*(?:personen|pers\.?|portionen|port\.|servings|serves|people|guests|gäste|gaeste)/iu
   );
   const fromLabel = match ? Number(match[1]) : null;
   if (fromLabel && fromLabel >= 1) return fromLabel;
@@ -297,15 +300,54 @@ export function extractRecipeLocally(text: string): Recipe | null {
   if (ingredients.length === 0) return null;
 
   return {
-    name: name || 'Rezept',
+    // An unnamed recipe is left unnamed, so the app can ask for the name
+    // instead of storing a placeholder.
+    name,
     description: null,
-    servings: parseServings(text) ?? 4,
+    servings: parseServings(text),
     course: null,
     diet: [],
     ingredients,
     steps,
     source: null,
   };
+}
+
+/**
+ * Keeps only a serving count the pasted text actually states. The model answers
+ * with a plausible number even where the source names none, so its value is
+ * believed only when the deterministic reader finds the same statement — the
+ * arrangement part 1 uses for the fields most prone to invention.
+ */
+export function withStatedServings(recipe: Recipe, sourceText: string): Recipe {
+  const stated = parseServings(sourceText);
+  return stated === recipe.servings ? recipe : { ...recipe, servings: stated };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Missing values                                                             */
+/* -------------------------------------------------------------------------- */
+
+function hasRecipeValue(recipe: Recipe, field: RecipeField): boolean {
+  switch (field) {
+    case 'name': return recipe.name.trim() !== '';
+    case 'servings': return recipe.servings !== null && recipe.servings >= 1;
+    case 'ingredients': return recipe.ingredients.length > 0;
+  }
+}
+
+/**
+ * Required properties of `config/recipeConfig.json` the read did not produce.
+ * The counterpart of `getMissingRequiredFields` in the gathering step: the app
+ * asks for these instead of filling them in with a guess.
+ */
+export function getMissingRecipeFields(recipe: Recipe): RecipeField[] {
+  return RECIPE_REQUIRED_FIELDS.filter((field) => !hasRecipeValue(recipe, field));
+}
+
+/** True once the recipe validates against the schema and can be scaled. */
+export function isRecipeComplete(recipe: Recipe): boolean {
+  return getMissingRecipeFields(recipe).length === 0;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -360,9 +402,13 @@ export function mergeShoppingList(entries: ShoppingListEntry[]): ShoppingListEnt
   });
 }
 
-/** One recipe scaled from its own servings to the number of participants. */
+/**
+ * One recipe scaled from its own servings to the number of participants. A
+ * recipe whose servings are still open cannot be scaled, so its quantities are
+ * passed through unchanged; the planner only ever uses answered recipes.
+ */
 export function scaleRecipe(recipe: Recipe, participantCount: number): ShoppingListEntry[] {
-  const factor = participantCount / Math.max(recipe.servings, 1);
+  const factor = recipe.servings === null ? 1 : participantCount / Math.max(recipe.servings, 1);
   return recipe.ingredients.map((ingredient) => {
     const base = toBase(ingredient.quantity * factor, ingredient.unit);
     const presented = fromBase(base.quantity, base.unit);
@@ -438,7 +484,7 @@ export function emptyRecipe(): Recipe {
   return {
     name: '',
     description: null,
-    servings: 4,
+    servings: null,
     course: null,
     diet: [],
     ingredients: [],
@@ -476,7 +522,7 @@ function buildSystemPrompt(language: RecipeOptions['language']): string {
     '',
     'Rules:',
     '- Use only information contained in the pasted text. Never invent ingredients or steps.',
-    '- servings is the number of people the listed quantities are for. Use 4 if the text does not say.',
+    '- servings is the number of people the listed quantities are for. Use null if the text does not say it. Never guess a number.',
     '- Convert every amount to one of the schema units: g, kg, ml, l, piece, pack.',
     '- Convert kitchen measures: 1 tablespoon/EL = 15 ml, 1 teaspoon/TL = 5 ml, 1 cup/Tasse = 250 ml, 1 dl = 100 ml.',
     '- Count-based items (eggs, onions, cloves of garlic, bunches) use unit "piece".',
@@ -521,6 +567,6 @@ export const recipeService = {
     const text = recipeText.trim();
     if (!text) throw new RecipeError('A recipe text is required.');
     const response = await this.create(text, options);
-    return { recipe: parseRecipe(response.content), response };
+    return { recipe: withStatedServings(parseRecipe(response.content), text), response };
   },
 };

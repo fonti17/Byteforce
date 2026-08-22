@@ -21,9 +21,12 @@
       "description": "One or two sentences about the dish."
     },
     "servings": {
-      "type": "integer",
+      "type": [
+        "integer",
+        "null"
+      ],
       "minimum": 1,
-      "description": "Number of people the listed ingredient quantities are meant for."
+      "description": "Number of people the listed ingredient quantities are meant for. null while the source text does not state it — the app asks for it instead of guessing a number."
     },
     "course": {
       "type": [

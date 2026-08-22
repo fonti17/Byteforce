@@ -4,6 +4,7 @@ import { useCateringPlan } from '../../hooks/useCateringPlan';
 import { useGathering, type PlannerStep } from '../../hooks/useGathering';
 import { useRecipes } from '../../hooks/useRecipes';
 import { getMissingRequiredFields } from '../../services/gatheringService';
+import { isRecipeComplete } from '../../services/recipeService';
 import type { GatheringData, GatheringField, GatheringResult } from '../../types/gathering';
 import type { Recipe } from '../../types/recipe';
 import { CateringPlanView } from './CateringPlanView';
@@ -60,26 +61,42 @@ export function CateringPlanner() {
     [language, selectedRecipes]
   );
 
-  // Where the recipe views return to, so they can be opened from several steps.
-  const [recipeReturnStep, setRecipeReturnStep] = useState<PlannerStep>('landing');
+  // Where the recipe views return to. The list and the detail screen open each
+  // other, so a single slot would be overwritten by the second hop and leave
+  // back pointing at the screen it is already on — a dead end. A trail keeps
+  // every way out; revisiting a step folds the loop away instead of stacking it.
+  const [recipeReturnTrail, setRecipeReturnTrail] = useState<PlannerStep[]>([]);
   const [detailRecipeId, setDetailRecipeId] = useState<string | null>(null);
+
+  const pushReturnStep = useCallback((returnStep: PlannerStep) => {
+    setRecipeReturnTrail((trail) => {
+      const seen = trail.indexOf(returnStep);
+      return seen === -1 ? [...trail, returnStep] : trail.slice(0, seen + 1);
+    });
+  }, []);
 
   const openRecipes = useCallback(
     (returnStep: PlannerStep) => {
-      setRecipeReturnStep(returnStep);
+      pushReturnStep(returnStep);
       setStep('recipes');
     },
-    [setStep]
+    [pushReturnStep, setStep]
   );
 
   const openRecipeDetail = useCallback(
     (id: string, returnStep: PlannerStep) => {
       setDetailRecipeId(id);
-      setRecipeReturnStep(returnStep);
+      pushReturnStep(returnStep);
       setStep('recipeDetail');
     },
-    [setStep]
+    [pushReturnStep, setStep]
   );
+
+  /** Leaves a recipe view for the step it was opened from; landing is the floor. */
+  const closeRecipeView = useCallback(() => {
+    setStep(recipeReturnTrail[recipeReturnTrail.length - 1] ?? 'landing');
+    setRecipeReturnTrail((trail) => trail.slice(0, -1));
+  }, [recipeReturnTrail, setStep]);
 
   const detailRecord = useMemo(
     () => recipes.recipes.find((entry) => entry.id === detailRecipeId) ?? null,
@@ -124,6 +141,7 @@ export function CateringPlanner() {
     plannedForRef.current = null;
     resetPlan();
     clearSelection();
+    setRecipeReturnTrail([]);
     reset();
   }, [clearSelection, reset, resetPlan]);
 
@@ -137,13 +155,28 @@ export function CateringPlanner() {
     [openRecipeDetail, recipes]
   );
 
+  // A read that left a required value open — most often the serving count —
+  // asks for it right away, the way the brief does for part 1.
+  const handleImportRecipe = useCallback(
+    async (text: string) => {
+      const imported = await recipes.importText(text);
+      if (imported && !isRecipeComplete(imported.record.recipe)) {
+        openRecipeDetail(imported.record.id, 'recipes');
+      }
+    },
+    [openRecipeDetail, recipes]
+  );
+
   const handleDeleteRecipe = useCallback(
     async (id: string) => {
       await recipes.remove(id);
       setDetailRecipeId(null);
-      setStep(recipeReturnStep === 'recipeDetail' ? 'recipes' : recipeReturnStep);
+      // The deleted recipe has no detail screen left, so the trail skips those.
+      const trail = recipeReturnTrail.filter((entry) => entry !== 'recipeDetail');
+      setStep(trail[trail.length - 1] ?? 'recipes');
+      setRecipeReturnTrail(trail.slice(0, -1));
     },
-    [recipeReturnStep, recipes, setStep]
+    [recipeReturnTrail, recipes, setStep]
   );
 
   const startQuestions = useCallback(
@@ -158,6 +191,12 @@ export function CateringPlanner() {
     },
     [setStep]
   );
+
+  // A picked menu is a starting point on its own: nothing has been read from a
+  // request, so the walk simply asks for every value the schema still needs.
+  const handleStartWithRecipes = useCallback(() => {
+    startQuestions(openQuestionList);
+  }, [openQuestionList, startQuestions]);
 
   const handleAnalyse = useCallback(
     async (message: string) => {
@@ -216,6 +255,7 @@ export function CateringPlanner() {
             onToggleRecipe={recipes.toggleSelected}
             onOpenRecipe={(id) => openRecipeDetail(id, 'landing')}
             onOpenRecipes={() => openRecipes('landing')}
+            onStartWithRecipes={handleStartWithRecipes}
           />
         ) : null}
 
@@ -255,17 +295,15 @@ export function CateringPlanner() {
             t={t}
             language={language}
             recipes={recipes.recipes}
-            selectedIds={recipes.selectedIds}
             isImporting={recipes.isImporting}
             source={recipes.source}
             error={recipes.error}
-            onImportText={(text) => void recipes.importText(text)}
+            onImportText={(text) => void handleImportRecipe(text)}
             onCreate={(recipe) => void handleCreateRecipe(recipe)}
-            onToggle={recipes.toggleSelected}
             onOpenDetail={(id) => openRecipeDetail(id, 'recipes')}
             onExport={recipes.exportLibrary}
             onImportLibrary={recipes.importLibrary}
-            onBack={() => setStep(recipeReturnStep)}
+            onBack={closeRecipeView}
           />
         ) : null}
 
@@ -275,13 +313,11 @@ export function CateringPlanner() {
             language={language}
             record={detailRecord}
             participantCount={data.participantCount}
-            isSelected={recipes.selectedIds.includes(detailRecord.id)}
-            onToggleSelected={() => recipes.toggleSelected(detailRecord.id)}
             onSave={(recipe) => void recipes.save(recipe, detailRecord)}
             onDelete={() => void handleDeleteRecipe(detailRecord.id)}
             onAddNew={() => openRecipes('recipeDetail')}
             onUpload={recipes.importLibrary}
-            onBack={() => setStep(recipeReturnStep)}
+            onBack={closeRecipeView}
           />
         ) : null}
 

@@ -122,14 +122,16 @@ export const strings = {
       'Dieser Browser erlaubt keine dauerhafte Datenbank — die Rezepte liegen nur in diesem Tab.',
     recipeSelected: (count: number) =>
       count === 1 ? '1 Rezept ausgewählt' : `${count} Rezepte ausgewählt`,
-    recipeNoneSelected: 'Kein Rezept ausgewählt',
+    recipeCount: (count: number) => (count === 1 ? '1 Rezept' : `${count} Rezepte`),
     recipeServings: (count: number) => `für ${count} Personen`,
     recipeIngredients: (count: number) =>
       count === 1 ? '1 Zutat' : `${count} Zutaten`,
     recipeScaledTo: (count: number) => `Hochgerechnet auf ${count} Personen`,
-    recipeUse: 'Für diesen Anlass verwenden',
-    recipeInUse: 'Wird verwendet',
     recipeDelete: 'Löschen',
+    recipeDeleteTitle: 'Rezept löschen?',
+    recipeDeleteBody: (name: string) =>
+      `«${name}» wird endgültig aus deiner Rezeptsammlung entfernt. Das lässt sich nicht rückgängig machen.`,
+    recipeDeleteConfirm: 'Endgültig löschen',
     recipeExport: 'Rezepte sichern',
     recipeImport: 'Rezepte laden',
     recipeImported: (count: number) =>
@@ -180,8 +182,24 @@ export const strings = {
     recipeAllRecipes: 'Alle Rezepte',
     recipeLandingEmpty: 'Noch keine Rezepte gespeichert.',
     recipeLandingHint: 'Ausgewählte Rezepte kommen ins Menü und in die Einkaufsliste.',
+    recipeStartWith: (count: number) =>
+      count === 1 ? 'Mit 1 Rezept starten' : `Mit ${count} Rezepten starten`,
+    recipeStartHint: 'Wir fragen dich danach nach Anlass, Personen, Mahlzeit und Budget.',
     recipeMore: (count: number) => `+ ${count} weitere`,
+    recipeLess: 'Weniger anzeigen',
     recipeManual: 'Von Hand erfassen',
+    recipeUntitled: 'Ohne Namen',
+    recipeServingsUnknown: 'Portionen offen',
+    recipeMissingTitle: 'Diese Angaben fehlen noch',
+    recipeMissingSubtitle: (count: number) =>
+      count === 1
+        ? '1 Angabe fehlt, bevor das Rezept für einen Anlass verwendet werden kann.'
+        : `${count} Angaben fehlen, bevor das Rezept für einen Anlass verwendet werden kann.`,
+    qRecipeName: 'Wie heisst das Rezept?',
+    qRecipeServings: 'Für wie viele Personen sind die angegebenen Mengen gedacht?',
+    qRecipeIngredients: 'Welche Zutaten gehören ins Rezept?',
+    recipeServingsHint: 'Ohne diese Angabe lassen sich die Mengen nicht auf deine Gästezahl hochrechnen.',
+    recipeIngredientsHint: 'Zutaten mit Menge ergänzt du im Bearbeiten-Formular.',
   },
   en: {
     brand: 'Catering Planner',
@@ -301,13 +319,15 @@ export const strings = {
       'This browser allows no persistent database — the recipes live in this tab only.',
     recipeSelected: (count: number) =>
       count === 1 ? '1 recipe selected' : `${count} recipes selected`,
-    recipeNoneSelected: 'No recipe selected',
+    recipeCount: (count: number) => (count === 1 ? '1 recipe' : `${count} recipes`),
     recipeServings: (count: number) => `for ${count} people`,
     recipeIngredients: (count: number) => (count === 1 ? '1 ingredient' : `${count} ingredients`),
     recipeScaledTo: (count: number) => `Scaled to ${count} guests`,
-    recipeUse: 'Use for this event',
-    recipeInUse: 'In use',
     recipeDelete: 'Delete',
+    recipeDeleteTitle: 'Delete recipe?',
+    recipeDeleteBody: (name: string) =>
+      `“${name}” will be removed from your recipe library for good. This cannot be undone.`,
+    recipeDeleteConfirm: 'Delete permanently',
     recipeExport: 'Back up recipes',
     recipeImport: 'Load recipes',
     recipeImported: (count: number) =>
@@ -358,8 +378,24 @@ export const strings = {
     recipeAllRecipes: 'All recipes',
     recipeLandingEmpty: 'No recipes saved yet.',
     recipeLandingHint: 'Selected recipes go into the menu and the shopping list.',
+    recipeStartWith: (count: number) =>
+      count === 1 ? 'Start with 1 recipe' : `Start with ${count} recipes`,
+    recipeStartHint: 'We will then ask you about the occasion, guests, meal and budget.',
     recipeMore: (count: number) => `+ ${count} more`,
+    recipeLess: 'Show less',
     recipeManual: 'Enter by hand',
+    recipeUntitled: 'Untitled',
+    recipeServingsUnknown: 'Servings open',
+    recipeMissingTitle: 'These details are still missing',
+    recipeMissingSubtitle: (count: number) =>
+      count === 1
+        ? '1 detail is missing before this recipe can be used for an event.'
+        : `${count} details are missing before this recipe can be used for an event.`,
+    qRecipeName: 'What is this recipe called?',
+    qRecipeServings: 'How many people are the listed quantities meant for?',
+    qRecipeIngredients: 'Which ingredients belong to this recipe?',
+    recipeServingsHint: 'Without it the quantities cannot be scaled to your guest count.',
+    recipeIngredientsHint: 'Ingredients with amounts are added in the edit form.',
   },
 };
 
