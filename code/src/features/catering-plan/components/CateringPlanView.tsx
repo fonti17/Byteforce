@@ -329,12 +329,11 @@ export function CateringPlanView({
                         </span>
                         {entry.unitPriceChf !== null ? (
                           <span className="shrink-0 text-right">
-                            <span className="inline-flex items-center px-2 py-0.5 rounded bg-primary text-white font-bold text-sm tracking-tight shadow-xs">
-                              {formatMoney(entry.unitPriceChf, 'CHF', language)}
-                              {entry.priceUnit ? (
-                                <span className="font-semibold opacity-80">{` / ${entry.priceUnit}`}</span>
-                              ) : null}
-                            </span>
+                            {entry.estimatedTotalChf !== null ? (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded bg-primary text-white font-bold text-sm tracking-tight shadow-xs">
+                                {formatMoney(entry.estimatedTotalChf, 'CHF', language)}
+                              </span>
+                            ) : null}
                             <span className="block text-xs text-neutral-500 mt-1">
                               {entry.packageQuantity ? `${t.packSize}: ${entry.packageQuantity}` : ''}
                             </span>
@@ -343,11 +342,12 @@ export function CateringPlanView({
                                 {entry.packagesNeeded} {t.packs} × {formatMoney(entry.packagePriceChf, 'CHF', language)}
                               </span>
                             ) : null}
-                            {entry.estimatedTotalChf !== null ? (
-                              <span className="block text-xs font-semibold text-neutral-900 mt-0.5 tabular-nums">
-                                {t.positionTotal}: {formatMoney(entry.estimatedTotalChf, 'CHF', language)}
-                              </span>
-                            ) : null}
+                            <span className="block text-xs font-semibold text-neutral-900 mt-0.5 tabular-nums">
+                              {formatMoney(entry.unitPriceChf, 'CHF', language)}
+                              {entry.priceUnit ? (
+                                  <span className="font-semibold opacity-80">{` / ${entry.priceUnit}`}</span>
+                              ) : null}
+                            </span>
                           </span>
                         ) : null}
                       </li>
@@ -363,6 +363,7 @@ export function CateringPlanView({
       <div className="flex flex-wrap gap-2 pt-2 border-t border-neutral-200">
         <Button
           variant="outline"
+          isDisabled={isPlanning}
           onPress={onBack}
           className="border-neutral-300 text-neutral-800 hover:border-primary hover:text-primary rounded text-xs font-medium"
         >
@@ -370,15 +371,16 @@ export function CateringPlanView({
         </Button>
         <Button
           variant="outline"
+          isDisabled={isPlanning}
           onPress={onOpenRecipes}
           className="border-neutral-300 text-neutral-800 hover:border-primary hover:text-primary rounded text-xs font-medium"
         >
           {t.recipeOpen}
         </Button>
         <Button
-          variant="ghost"
-          size="sm"
-          className="text-neutral-500 hover:text-neutral-800 rounded"
+          variant="outline"
+          isDisabled={isPlanning}
+          className="border-neutral-300 text-neutral-800 hover:border-primary hover:text-primary rounded text-xs font-medium"
           onPress={onRestart}>
           {t.restart}
         </Button>

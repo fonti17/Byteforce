@@ -3,13 +3,12 @@ import { Button } from '@heroui/react';
 import { useCateringPlan } from '@/features/catering-plan/hooks/useCateringPlan';
 import { useGathering, type PlannerStep } from '@/features/gathering/hooks/useGathering';
 import { useRecipes } from '@/features/recipes/hooks/useRecipes';
-import { getMissingRequiredFields } from '@/features/gathering/gatheringService';
+import { buildGatheringResult, getMissingRequiredFields } from '@/features/gathering/gatheringService';
 import { isRecipeComplete } from '@/features/recipes/recipeService';
 import type { GatheringData, GatheringField, GatheringResult } from '@/features/gathering/types';
 import type { Recipe } from '@/features/recipes/types';
 import { CateringPlanView } from '@/features/catering-plan/components/CateringPlanView';
 import { GatheringInput } from '@/features/gathering/components/GatheringInput';
-import { GatheringResultView } from '@/features/gathering/components/GatheringResultView';
 import { MissingValues } from '@/features/gathering/components/MissingValues';
 import { PlannerLanding } from './PlannerLanding';
 import { RecipeDetailView } from '@/features/recipes/components/RecipeDetailView';
@@ -131,6 +130,14 @@ export function CateringPlanner() {
     [generatePlan, originalRequest, resetPlan]
   );
 
+  const openPlan = useCallback(
+    (payload: GatheringResult) => {
+      runPlan(payload);
+      setStep('plan');
+    },
+    [runPlan, setStep]
+  );
+
   const handleRestart = useCallback(() => {
     resetPlan();
     clearSelection();
@@ -175,14 +182,14 @@ export function CateringPlanner() {
   const startQuestions = useCallback(
     (questions: QuestionId[]) => {
       if (questions.length === 0) {
-        setStep('result');
+        if (result) openPlan(result);
         return;
       }
       setQueue(questions);
       setQueueRun((run) => run + 1);
       setStep('input');
     },
-    [setStep]
+    [openPlan, result, setStep]
   );
 
   const handleAnalyse = useCallback(
@@ -212,9 +219,14 @@ export function CateringPlanner() {
   // whenever the walk ends with something still open.
   const handleQuestionsDone = useCallback(
     (nextData: GatheringData) => {
-      setStep(getMissingRequiredFields(nextData).length === 0 ? 'result' : 'brief');
+      if (getMissingRequiredFields(nextData).length === 0) {
+        const nextResult = buildGatheringResult(nextData);
+        if (nextResult) openPlan(nextResult);
+        return;
+      }
+      setStep('brief');
     },
-    [setStep]
+    [openPlan, setStep]
   );
 
   return (
@@ -350,20 +362,6 @@ export function CateringPlanner() {
           />
         ) : null}
 
-        {step === 'result' && result ? (
-          <GatheringResultView
-            t={t}
-            result={result}
-            isPlanning={isPlanning}
-            onContinue={() => {
-              runPlan(result);
-              setStep('plan');
-            }}
-            onBack={() => setStep('brief')}
-            onRestart={handleRestart}
-          />
-        ) : null}
-
         {step === 'plan' && result ? (
           <CateringPlanView
             t={t}
@@ -380,7 +378,7 @@ export function CateringPlanner() {
             error={planError}
             onRetry={() => runPlan(result)}
             onOpenRecipes={() => openRecipes('plan')}
-            onBack={() => setStep('result')}
+            onBack={() => setStep('brief')}
             onRestart={handleRestart}
           />
         ) : null}

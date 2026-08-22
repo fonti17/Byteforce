@@ -19,7 +19,6 @@ export type PlannerStep =
   | 'landing'
   | 'brief'
   | 'input'
-  | 'result'
   | 'plan'
   | 'recipes'
   | 'recipeDetail';

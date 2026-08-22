@@ -99,7 +99,6 @@ export const strings = {
     noBudgetSpecified: 'Kein maximales Budget vorgegeben',
     openProdega: 'Produkt bei PRODEGA öffnen',
     priceNotFound: 'Kein passendes PRODEGA-Produkt gefunden',
-    positionTotal: 'Gesamt',
     packSize: 'Packungsgröße',
     packs: 'Packungen',
     incompletePricing: 'Die Summe enthält nur Positionen mit eindeutig berechenbarer Packungsmenge.',
