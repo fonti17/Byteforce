@@ -159,7 +159,7 @@ export function RecipeDetailView({
         </Button>
         <Button
           variant="danger-soft"
-          className="w-fit"
+          className="border-neutral-300 text-neutral-800 hover:border-primary hover:text-primary rounded text-xs font-medium"
           onPress={() => setIsConfirmingDelete(true)}
         >
           {t.recipeDelete}
