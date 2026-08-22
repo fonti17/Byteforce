@@ -1,5 +1,5 @@
-import { decodeTurbostreamHtml, extractSearchResponse } from './turbostream.ts';
-import type { TransgourmetProduct } from './types.ts';
+import { decodeTurbostreamHtml, extractSearchResponse } from './turbostream.js';
+import type { TransgourmetProduct } from './types.js';
 
 const CATALOG_URL = 'https://web.transgourmet.ch/de/webshop/catalog';
 const IMAGE_BASE = 'https://webshop.transgourmet.ch/shop/productimages/article';

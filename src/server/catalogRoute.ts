@@ -1,4 +1,4 @@
-import { MAX_BATCH_SIZE, candidatesForAll, searchCatalog } from './transgourmetCatalog.ts';
+import { MAX_BATCH_SIZE, candidatesForAll, searchCatalog } from './transgourmetCatalog.js';
 
 /**
  * The catalog endpoint as a Web `Request` → `Response` handler.

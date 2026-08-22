@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { MAX_BATCH_SIZE, candidatesForAll, searchCatalog } from '../../src/server/transgourmetCatalog.ts';
+import { MAX_BATCH_SIZE, candidatesForAll, searchCatalog } from '../../src/server/transgourmetCatalog.js';
 
 export const config = {
   maxDuration: 60,

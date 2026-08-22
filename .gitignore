@@ -46,3 +46,6 @@ scraper/data/*.sqlite*
 
 # Agent workspace state
 .agents/
+
+# Vercel CLI
+.vercel

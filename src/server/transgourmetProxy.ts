@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
-import { handleCatalogRequest } from './catalogRoute.ts';
+import { handleCatalogRequest } from './catalogRoute.js';
 
 /**
  * The catalog endpoint under `npm run dev` and `npm run preview`.

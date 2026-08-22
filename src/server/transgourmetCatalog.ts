@@ -1,9 +1,9 @@
-import { parseCatalogHtml } from '../features/pricing/transgourmet/articles.ts';
-import { searchTermsFor } from '../features/pricing/transgourmet/searchTerms.ts';
+import { parseCatalogHtml } from '../features/pricing/transgourmet/articles.js';
+import { searchTermsFor } from '../features/pricing/transgourmet/searchTerms.js';
 import type {
   CatalogCandidates,
   CatalogSearchResponse,
-} from '../features/pricing/transgourmet/types.ts';
+} from '../features/pricing/transgourmet/types.js';
 
 /**
  * Server-side access to the Transgourmet webshop catalog.
