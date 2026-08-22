@@ -139,23 +139,9 @@ export function RecipeDetailView({
         <Button
           variant="outline"
           className="border-neutral-300 text-neutral-800 hover:border-primary hover:text-primary rounded text-xs font-medium"
-          onPress={onAddNew}
-        >
-          {t.recipeNew}
-        </Button>
-        <Button
-          variant="outline"
-          className="border-neutral-300 text-neutral-800 hover:border-primary hover:text-primary rounded text-xs font-medium"
           onPress={download}
         >
           {t.recipeDownload}
-        </Button>
-        <Button
-          variant="outline"
-          className="border-neutral-300 text-neutral-800 hover:border-primary hover:text-primary rounded text-xs font-medium"
-          onPress={() => fileInputRef.current?.click()}
-        >
-          {t.recipeUpload}
         </Button>
         <Button
           variant="danger-soft"
@@ -283,15 +269,6 @@ export function RecipeDetailView({
               </Card>
             </section>
           ) : null}
-
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-fit text-red-600 hover:bg-red-50 p-0 text-xs font-medium"
-            onPress={onDelete}
-          >
-            {t.recipeDelete}
-          </Button>
         </>
       )}
     </div>

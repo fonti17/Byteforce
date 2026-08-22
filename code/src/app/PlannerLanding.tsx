@@ -162,7 +162,7 @@ export function PlannerLanding({
           <Button
             variant="ghost"
             size="sm"
-            className="text-primary hover:underline p-0 text-sm font-medium"
+            className="text-primary hover:underline font-medium rounded"
             onPress={onOpenRecipes}
           >
             {recipes.length > 0 ? t.recipeAllRecipes : t.recipeNew}

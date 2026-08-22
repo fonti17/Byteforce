@@ -196,13 +196,22 @@ export function RecipesView({
           </Card.Content>
         </Card>
       ) : (
-        <Button
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            className="w-fit border-neutral-300 text-neutral-800 hover:border-primary hover:text-primary rounded text-xs font-medium"
+            onPress={() => setIsCreating(true)}
+          >
+            {t.recipeManual}
+          </Button>
+          <Button
           variant="outline"
-          className="w-fit border-neutral-300 text-neutral-800 hover:border-primary hover:text-primary rounded text-sm font-medium"
-          onPress={() => setIsCreating(true)}
-        >
-          {t.recipeManual}
-        </Button>
+          className="border-neutral-300 text-neutral-800 hover:border-primary hover:text-primary rounded text-xs font-medium"
+          onPress={() => fileInputRef.current?.click()}
+          >
+            {t.recipeUpload}
+          </Button>
+        </div>
       )}
 
       {error ? (
@@ -269,7 +278,8 @@ export function RecipesView({
 
       <div className="flex flex-wrap gap-2">
         {/* The backup file holds the whole library, so it needs one stored recipe. */}
-        <Button variant="outline" isDisabled={recipes.length === 0} onPress={exportLibrary}>
+        <Button className="border-neutral-300 text-neutral-800 hover:border-primary hover:text-primary rounded text-xs font-medium"
+                variant="outline" isDisabled={recipes.length === 0} onPress={exportLibrary}>
           {t.recipeExport}
         </Button>
         <Button

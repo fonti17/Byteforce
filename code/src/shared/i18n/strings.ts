@@ -18,7 +18,7 @@ export const strings = {
     inputLabel: 'Anfrage',
     inputPlaceholder: 'E-Mail einfügen oder Anlass frei beschreiben …',
     insertExample: 'Beispiel-Anfrage einfügen',
-    analyse: 'Anfrage verstehen',
+    analyse: 'Event planen',
     analysing: 'Anfrage wird gelesen …',
     footnote: 'Für Privatpersonen und Profis. Mengen berechnet die App, nicht geraten.',
 
@@ -237,7 +237,7 @@ export const strings = {
     inputLabel: 'Request',
     inputPlaceholder: 'Paste an email or describe your event …',
     insertExample: 'Insert example request',
-    analyse: 'Understand request',
+    analyse: 'Plan Event',
     analysing: 'Reading your request …',
     footnote: 'For private hosts and professionals. Quantities are calculated, not guessed.',
 
