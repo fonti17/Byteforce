@@ -5,9 +5,7 @@
   "type": "object",
   "required": [
     "menu",
-    "shoppingList",
-    "budget",
-    "reasoning"
+    "shoppingList"
   ],
   "properties": {
     "menu": {
@@ -88,33 +86,6 @@
         },
         "additionalProperties": false
       }
-    },
-    "budget": {
-      "type": "object",
-      "required": [
-        "currency",
-        "estimatedTotal",
-        "note"
-      ],
-      "properties": {
-        "currency": {
-          "type": "string",
-          "pattern": "^[A-Z]{3}$"
-        },
-        "estimatedTotal": {
-          "type": "number",
-          "minimum": 0
-        },
-        "note": {
-          "type": "string",
-          "description": "Short explanation of how the proposal fits the available budget."
-        }
-      },
-      "additionalProperties": false
-    },
-    "reasoning": {
-      "type": "string",
-      "description": "Explanation of how the proposal handles the budget, preferences, constraints, and any requests that could not be fulfilled exactly."
     }
   },
   "additionalProperties": false

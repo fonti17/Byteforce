@@ -418,8 +418,6 @@ export function mergeRecipesIntoPlan(
       ],
     },
     shoppingList: mergeShoppingList([...contribution.shoppingList, ...plan.shoppingList]),
-    budget: plan.budget,
-    reasoning: plan.reasoning,
   };
 }
 
@@ -432,8 +430,6 @@ export function buildPlanFromRecipes(recipes: Recipe[], result: GatheringResult)
   return {
     menu: { name: '', items: contribution.menuItems },
     shoppingList: contribution.shoppingList,
-    budget: { currency: result.budget.currency, estimatedTotal: 0, note: '' },
-    reasoning: 'The plan was built from the selected recipes. Cost estimation requires product prices.',
   };
 }
 

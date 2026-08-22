@@ -102,7 +102,7 @@ class PromotionExtractor:
                 novelties = [ProductItem.model_validate(n) for n in home_data["novelties"] if isinstance(n, dict)]
 
         if not campaigns:
-            campaigns = [{"id": "camp_1", "title": "Top Aktionen der Woche", "link": "/de/prodega-easy/catalog?a=true"}]
+            campaigns = [{"id": "camp_1", "title": "Top Aktionen der Woche", "link": "/de/webshop/catalog?a=true"}]
 
         return {
             "actions": actions if actions else [ProductItem(article_number="040967", title="Cherry Tomaten", price_chf=4.10, is_action=True)],

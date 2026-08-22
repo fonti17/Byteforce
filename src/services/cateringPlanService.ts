@@ -5,7 +5,6 @@ import { mergeRecipesIntoPlan, recipeContribution } from './recipeService';
 import type {
   CateringMenuItem,
   CateringPlan,
-  CateringPlanBudget,
   CateringPlanOptions,
   CateringPlanInput,
   CateringPlanTurn,
@@ -41,16 +40,13 @@ function buildSystemPrompt(
       : '1. Choose one coherent menu suitable for the event type, date, meal, participant count, and budget.',
     '2. Derive all required ingredients from that menu.',
     '3. Calculate realistic total purchase quantities for the complete participant count.',
-    '4. Keep the proposal within the stated budget.',
-    '5. Explain your reasoning: mention how the budget was used, which preferences or constraints affected the choices, and any requested items that could not be fulfilled exactly.',
-    '6. If a request conflicts with the budget, clearly describe the compromise and the practical alternative chosen.',
+    '4. Use the supplied budget only as guidance when choosing the menu. Do not estimate prices.',
     '',
     ...(hasRecipes
       ? [
           'Rules for the supplied recipes:',
           '- Their ingredient quantities are already calculated by the application. Do not repeat them in shoppingList.',
           '- Do not repeat them in menu.items either; list only the dishes you add.',
-          '- Do include their cost in budget.estimatedTotal, so the estimate covers the complete menu.',
           '- Return empty arrays if the recipes already make a complete menu.',
           '',
         ]
@@ -100,16 +96,6 @@ function parseShoppingList(value: unknown): ShoppingListEntry[] {
   });
 }
 
-function parseBudget(value: unknown, fallbackCurrency: string): CateringPlanBudget {
-  const record = value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
-  const currency = asText(record.currency)?.toUpperCase();
-  return {
-    currency: currency && /^[A-Z]{3}$/.test(currency) ? currency : fallbackCurrency,
-    estimatedTotal: Math.max(asNumber(record.estimatedTotal) ?? 0, 0),
-    note: asText(record.note) ?? '',
-  };
-}
-
 /**
  * Reads the part-2 answer into the shape of `config/cateringPlanConfig.json`.
  * Unusable list entries are dropped; a missing menu or shopping list is an error,
@@ -118,7 +104,6 @@ function parseBudget(value: unknown, fallbackCurrency: string): CateringPlanBudg
  */
 export function parseCateringPlan(
   content: string,
-  fallbackCurrency = 'CHF',
   { requireItems = true }: { requireItems?: boolean } = {}
 ): CateringPlan {
   const parsed = extractJsonObject(content);
@@ -135,8 +120,6 @@ export function parseCateringPlan(
   return {
     menu: { name: asText(menuRecord.name) ?? '', items },
     shoppingList,
-    budget: parseBudget(parsed.budget, fallbackCurrency),
-    reasoning: asText(parsed.reasoning) ?? '',
   };
 }
 
@@ -223,7 +206,7 @@ export const cateringPlanService = {
     const { gatheringState } = resolvePlanInput(input);
     const gatheringResult = gatheringState as GatheringResult;
     const response = await this.create(input, options);
-    const parsed = parseCateringPlan(response.content, gatheringResult.budget.currency, {
+    const parsed = parseCateringPlan(response.content, {
       requireItems: recipes.length === 0,
     });
     return {
@@ -249,12 +232,12 @@ export const cateringPlanService = {
     const recipes = options.recipes ?? [];
     const { gatheringState } = resolvePlanInput(input);
     const gatheringResult = gatheringState as GatheringResult;
-    const parsed = parseCateringPlan(content, gatheringResult.budget.currency, {
+    const parsed = parseCateringPlan(content, {
       requireItems: recipes.length === 0,
     });
     return {
       plan: mergeRecipesIntoPlan(parsed, recipes, gatheringResult.participantCount),
-      response: { content, model: 'apertus-70b' },
+      response: { content, model: options.model ?? 'apertus-70b' },
     };
   },
 };

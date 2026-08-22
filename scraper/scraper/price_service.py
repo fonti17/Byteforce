@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 import re
+import time
 import unicodedata
 from typing import Iterable, Literal, Mapping, Optional
 from urllib.parse import quote_plus
@@ -11,9 +12,11 @@ from urllib.parse import quote_plus
 from pydantic import BaseModel, Field, field_validator
 
 from scraper.extractors.search import SearchService
+from scraper.extractors.catalog import CatalogExtractor
 from scraper.models.product import ProductItem
+from scraper.storage.product_store import ProductStore
 
-PRODEGA_CATALOG_URL = "https://web.transgourmet.ch/de/prodega-easy/catalog"
+PRODEGA_CATALOG_URL = "https://web.transgourmet.ch/de/webshop/catalog"
 
 # PRODEGA unitText values describing containers rather than measurable content.
 # Their weight/volume is therefore read from the product description.
@@ -166,16 +169,45 @@ def _package_estimate(
 class PriceService:
     """Search PRODEGA and select one traceable, unit-compatible product."""
 
-    def __init__(self, search_service: Optional[SearchService] = None) -> None:
+    def __init__(
+        self,
+        search_service: Optional[SearchService] = None,
+        product_store: Optional[ProductStore] = None,
+    ) -> None:
         self.search_service = search_service or SearchService()
+        self.product_store = product_store or ProductStore()
+
+    def sync_catalog(
+        self,
+        category_ids: Iterable[int] = range(1, 11),
+        *,
+        max_pages_per_category: int = 100,
+        page_size: int = 100,
+    ) -> int:
+        """Download the catalog once and atomically replace the local snapshot."""
+        extractor = CatalogExtractor(client=self.search_service.client)
+        categories = extractor.scrape_all_categories(
+            category_ids=list(category_ids),
+            max_pages_per_category=max_pages_per_category,
+            page_size=page_size,
+        )
+        products = [product for entries in categories.values() for product in entries]
+        if not products:
+            raise RuntimeError("The Transgourmet webshop returned no catalog products")
+        return self.product_store.replace_all(products)
 
     def price_ingredient(
         self, request: IngredientRequest | Mapping[str, object], *, search_limit: int = 10
     ) -> PricedIngredient:
         ingredient = request if isinstance(request, IngredientRequest) else IngredientRequest.model_validate(request)
-        products = self.search_service.search_articles(
-            query=ingredient.ingredient, limit=max(1, min(search_limit, 25))
+        products = self.product_store.search(
+            ingredient.ingredient, limit=max(1, min(search_limit, 25))
         )
+        # Keeps the API usable if the first catalog import could not complete.
+        if not products and self.product_store.count() == 0:
+            products = self.search_service.search_articles(
+                query=ingredient.ingredient, limit=max(1, min(search_limit, 25))
+            )
         usable = [product for product in products if product.price_chf > 0]
         if not usable:
             return PricedIngredient(
@@ -215,7 +247,24 @@ class PriceService:
     def price_shopping_list(
         self, ingredients: Iterable[IngredientRequest | Mapping[str, object]], *, search_limit: int = 10
     ) -> list[PricedIngredient]:
-        return [self.price_ingredient(item, search_limit=search_limit) for item in ingredients]
+        started_at = time.perf_counter()
+        results: list[PricedIngredient] = []
+        for item in ingredients:
+            item_started_at = time.perf_counter()
+            result = self.price_ingredient(item, search_limit=search_limit)
+            results.append(result)
+            duration_ms = (time.perf_counter() - item_started_at) * 1000
+            print(
+                f"[price-service] {result.ingredient!r}: {duration_ms:.1f} ms "
+                f"({result.status})",
+                flush=True,
+            )
+        total_ms = (time.perf_counter() - started_at) * 1000
+        print(
+            f"[price-service] {len(results)} ingredients completed in {total_ms:.1f} ms",
+            flush=True,
+        )
+        return results
 
 
 __all__ = ["IngredientRequest", "PricedIngredient", "PriceService"]

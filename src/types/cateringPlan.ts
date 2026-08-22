@@ -24,12 +24,6 @@ export interface ShoppingListEntry {
   category: string | null;
 }
 
-export interface CateringPlanBudget {
-  currency: string;
-  estimatedTotal: number;
-  note: string;
-}
-
 /**
  * Part-2 payload. Mirrors `config/cateringPlanConfig.json`, including
  * `additionalProperties: false`.
@@ -37,9 +31,6 @@ export interface CateringPlanBudget {
 export interface CateringPlan {
   menu: CateringMenu;
   shoppingList: ShoppingListEntry[];
-  budget: CateringPlanBudget;
-  /** Explains budget trade-offs and any unmet or adapted requests. */
-  reasoning: string;
 }
 
 export interface PricedShoppingListEntry extends ShoppingListEntry {

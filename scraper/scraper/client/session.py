@@ -98,7 +98,7 @@ class TransgourmetSession:
     def warmup(self) -> bool:
         """Warm up session cookies against web.transgourmet.ch."""
         try:
-            url = f"{self.base_url}/de/prodega-easy"
+            url = f"{self.base_url}/de/webshop"
             self.request("GET", url)
             self._is_warmed_up = True
             return True
@@ -211,9 +211,9 @@ class TransgourmetSession:
         is_novelty: bool = False,
     ) -> str:
         """
-        Query catalog items and faceted filters from Prodega Easy catalog SSR route.
+        Query catalog items and faceted filters from the Transgourmet webshop.
         """
-        url = f"{self.base_url}/de/prodega-easy/catalog"
+        url = f"{self.base_url}/de/webshop/catalog"
         params: Dict[str, Any] = {
             "searchTerm": search_term if search_term else None,
             "page": page,
@@ -273,9 +273,9 @@ class TransgourmetSession:
 
     def get_home_html(self) -> str:
         """
-        Fetch Prodega Easy homepage SSR payload.
+        Fetch the Transgourmet webshop homepage payload.
         """
-        url = f"{self.base_url}/de/prodega-easy"
+        url = f"{self.base_url}/de/webshop"
         resp = self.request("GET", url)
         return resp.text
 
