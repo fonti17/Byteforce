@@ -56,10 +56,11 @@ function resolveModelConfig(model?: LLMModel): ModelConfig {
 }
 
 function resolveEndpoint(config: ModelConfig, useProxyOption?: boolean): string {
-  // Use dev proxy when running in Vite dev server to bypass browser CORS preflight restrictions
+  // Default to using same-origin proxy (/api/stoney, /api/onprem) unless explicitly disabled,
+  // preventing browser CORS preflight blocks in both local dev (Vite) and Vercel production (rewrites).
   const preferProxy =
     useProxyOption ??
-    (import.meta.env.DEV && import.meta.env.VITE_USE_PROXY !== 'false');
+    (import.meta.env.VITE_USE_PROXY !== 'false');
 
   return preferProxy ? config.proxyEndpoint : config.directEndpoint;
 }
