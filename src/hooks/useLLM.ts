@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { llmService, LLMServiceError } from '../services/llmService';
+import { llmService, LLMServiceError } from '../services/llmService.ts';
 import type { LLMMessage, LLMRequestOptions, LLMResponse } from '../types/llm';
 
 export function useLLM() {

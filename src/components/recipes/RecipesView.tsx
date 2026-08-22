@@ -15,8 +15,8 @@ import type { Recipe, RecipeLibraryFile, StoredRecipe } from '../../types/recipe
 import type { RecipeSource } from '../../hooks/useRecipes';
 import { emptyRecipe, recipeService } from '../../services/recipeService';
 import { RecipeEditor } from './RecipeEditor';
-import { recipeName, recipeSummary } from './fields';
-import type { Language, Strings } from './strings';
+import { recipeName, recipeSummary } from '../../constants/fields';
+import type { Language, Strings } from '../../i18n/strings';
 
 /** Pasted in the shape people actually copy from a website or a chat message. */
 const EXAMPLE_RECIPE: Record<Language, string> = {

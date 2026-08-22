@@ -17,10 +17,10 @@ import type {
   CateringPlanInput,
   CateringPlanTurn,
   ShoppingListEntry,
-} from '../types/cateringPlan.ts';
-import type { GatheringData, GatheringResult } from '../types/gathering.ts';
-import type { LLMResponse } from '../types/llm.ts';
-import type { Recipe } from '../types/recipe.ts';
+} from '../types/cateringPlan';
+import type { GatheringData, GatheringResult } from '../types/gathering';
+import type { LLMResponse } from '../types/llm';
+import type { Recipe } from '../types/recipe';
 
 export class CateringPlanError extends Error {
   /** Raw model answer, kept so a failed run can be inspected. */

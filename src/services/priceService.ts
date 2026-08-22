@@ -3,6 +3,7 @@ import type {
   PricedCateringPlan,
   PricedShoppingListEntry,
 } from '../types/cateringPlan';
+import { translationService } from './translationService.ts';
 
 interface PriceApiEntry {
   status: 'matched' | 'not_found' | 'quantity_unknown';
@@ -23,6 +24,12 @@ interface PriceApiResponse {
   ingredients: PriceApiEntry[];
 }
 
+interface PriceServiceOptions {
+  signal?: AbortSignal;
+  /** Whether to translate ingredients to German via smaller AI (default: true). */
+  translateToGerman?: boolean;
+}
+
 const env: Record<string, string | undefined> =
   typeof import.meta !== 'undefined' && import.meta.env
     ? (import.meta.env as unknown as Record<string, string | undefined>)
@@ -33,18 +40,43 @@ const env: Record<string, string | undefined> =
 const endpoint = env.VITE_PRICE_SERVICE_ENDPOINT ?? '/api/prodega/prices';
 
 class PriceService {
-  async enrich(plan: CateringPlan): Promise<PricedCateringPlan> {
+  async enrich(plan: CateringPlan, options: PriceServiceOptions = {}): Promise<PricedCateringPlan> {
     const startedAt = performance.now();
+
+    // 1. Translate ingredients into German via the smaller AI model (Apertus 8B)
+    const rawIngredients = plan.shoppingList.map((entry) => entry.ingredient);
+    let searchTerms = rawIngredients;
+
+    if (options.translateToGerman !== false && rawIngredients.length > 0) {
+      const translationStart = performance.now();
+      try {
+        searchTerms = await translationService.translateIngredientsToGerman(rawIngredients, {
+          signal: options.signal,
+        });
+        console.info(
+          `[price-service] Translated ${rawIngredients.length} ingredients to German via Apertus-8B in ${Math.round(performance.now() - translationStart)} ms`
+        );
+      } catch (translationError) {
+        console.warn(
+          '[price-service] Ingredient translation layer failed, proceeding with original terms:',
+          translationError
+        );
+        searchTerms = rawIngredients;
+      }
+    }
+
+    // 2. Query PRODEGA price service with translated German terms
+    const requestIngredients = plan.shoppingList.map((entry, index) => ({
+      ingredient: searchTerms[index] || entry.ingredient,
+      quantity: entry.quantity,
+      unit: entry.unit,
+    }));
+
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ingredients: plan.shoppingList.map(({ ingredient, quantity, unit }) => ({
-          ingredient,
-          quantity,
-          unit,
-        })),
-      }),
+      body: JSON.stringify({ ingredients: requestIngredients }),
+      signal: options.signal,
     });
 
     if (!response.ok) {
@@ -62,8 +94,13 @@ class PriceService {
 
     const shoppingList: PricedShoppingListEntry[] = plan.shoppingList.map((entry, index) => {
       const price = payload.ingredients[index];
+      const translated = searchTerms[index]?.trim();
+      const hasTranslation = translated && translated !== entry.ingredient;
       return {
         ...entry,
+        ingredient: hasTranslation ? translated : entry.ingredient,
+        originalIngredient: hasTranslation ? entry.ingredient : null,
+        searchIngredient: translated || null,
         pricingStatus: price.status,
         pricingMessage: price.pricing_message,
         productName: price.product_name,

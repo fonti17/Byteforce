@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button, Card, Chip, IconChevronLeft, SuccessIcon, Typography } from '@heroui/react';
 import type { GatheringResult } from '../../types/gathering';
-import type { Strings } from './strings';
+import type { Strings } from '../../i18n/strings';
 
 interface GatheringResultViewProps {
   t: Strings;

@@ -12,8 +12,8 @@ import {
   Typography,
 } from '@heroui/react';
 import type { GatheringData, GatheringUncertainty } from '../../types/gathering';
-import { QUESTION_ORDER, formatAnswer, questionLabel, type QuestionId } from './fields';
-import type { Language, Strings } from './strings';
+import { QUESTION_ORDER, formatAnswer, questionLabel, type QuestionId } from '../../constants/fields';
+import type { Language, Strings } from '../../i18n/strings';
 
 interface MissingValuesProps {
   t: Strings;

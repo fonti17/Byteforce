@@ -3,9 +3,9 @@ import type {
   GatheringData,
   GatheringField,
   MealType,
-} from '../../types/gathering';
-import type { Recipe, RecipeField } from '../../types/recipe';
-import type { Language, Strings } from './strings';
+} from '../types/gathering';
+import type { Recipe, RecipeField } from '../types/recipe';
+import type { Language, Strings } from '../i18n/strings';
 
 /**
  * One question covers one top-level property of `gatheringConfig.json`, even

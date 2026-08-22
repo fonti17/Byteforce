@@ -1,7 +1,7 @@
 import { Alert, Button, Card, Chip, IconChevronLeft, Spinner, Typography } from '@heroui/react';
 import type { PricedCateringPlan, PricedShoppingListEntry } from '../../types/cateringPlan';
 import type { GatheringResult } from '../../types/gathering';
-import type { Language, Strings } from './strings';
+import type { Language, Strings } from '../../i18n/strings';
 
 interface CateringPlanViewProps {
   t: Strings;
@@ -45,11 +45,45 @@ function formatMoney(amount: number, currency: string, language: Language): stri
   }).format(amount);
 }
 
+const CATEGORY_TRANSLATIONS: Record<string, string> = {
+  vegetables: 'Gemüse & Früchte',
+  vegetable: 'Gemüse & Früchte',
+  produce: 'Gemüse & Früchte',
+  meat: 'Fleisch & Geflügel',
+  fish: 'Fisch & Meeresfrüchte',
+  poultry: 'Geflügel',
+  dairy: 'Milchprodukte & Eier',
+  bakery: 'Backwaren & Brot',
+  pasta: 'Teigwaren & Getreide',
+  grains: 'Teigwaren & Getreide',
+  spices: 'Gewürze & Kräuter',
+  herbs: 'Kräuter & Gewürze',
+  seasoning: 'Gewürze',
+  condiments: 'Saucen & Dips',
+  sauces: 'Saucen & Dips',
+  drinks: 'Getränke',
+  beverages: 'Getränke',
+  alcohol: 'Wein, Bier & Spirituosen',
+  canned: 'Konserven & Vorrat',
+  pantry: 'Vorrat & Grundnahrungsmittel',
+  dessert: 'Dessert & Süsswaren',
+  baking: 'Backzutaten',
+  oil: 'Öle & Essig',
+  oils: 'Öle & Essig',
+};
+
+function formatCategory(category: string, language: Language): string {
+  if (language !== 'de') return category;
+  const key = category.trim().toLowerCase();
+  return CATEGORY_TRANSLATIONS[key] ?? category;
+}
+
 /** Shopping list grouped by category, in the order the categories first appear. */
-function groupByCategory(entries: PricedShoppingListEntry[], fallback: string) {
+function groupByCategory(entries: PricedShoppingListEntry[], fallback: string, language: Language) {
   const groups = new Map<string, PricedShoppingListEntry[]>();
   for (const entry of entries) {
-    const category = entry.category ?? fallback;
+    const rawCategory = entry.category ?? fallback;
+    const category = formatCategory(rawCategory, language);
     const existing = groups.get(category);
     if (existing) existing.push(entry);
     else groups.set(category, [entry]);
@@ -77,7 +111,7 @@ export function CateringPlanView({
   onBack,
   onRestart,
 }: CateringPlanViewProps) {
-  const groups = plan ? groupByCategory(plan.shoppingList, t.uncategorised) : [];
+  const groups = plan ? groupByCategory(plan.shoppingList, t.uncategorised, language) : [];
   const rawCost = plan?.pricing.estimatedTotal ?? 0;
   const marginAmount = typeof targetMargin === 'number' && targetMargin > 0 ? targetMargin : 0;
   const customerTotal = rawCost + marginAmount;
@@ -259,6 +293,7 @@ export function CateringPlanView({
                           <span className="block text-sm font-bold text-neutral-900">{entry.ingredient}</span>
                           <span className="block text-xs text-neutral-600 mt-0.5">
                             {formatQuantity(entry, t, language)}
+                            {entry.originalIngredient ? ` (${entry.originalIngredient})` : ''}
                             {entry.productName ? ` · ${entry.productName}` : ''}
                           </span>
                           {entry.productUrl ? (

@@ -13,7 +13,7 @@ import {
 import { CATERING_UNITS } from '../../types/cateringPlan';
 import { RECIPE_COURSES, RECIPE_DIETS } from '../../types/recipe';
 import type { Recipe, RecipeCourse, RecipeDiet } from '../../types/recipe';
-import type { Strings } from './strings';
+import type { Strings } from '../../i18n/strings';
 
 interface DraftIngredient {
   /** Stable across re-orders, so a row keeps its input focus while typing. */

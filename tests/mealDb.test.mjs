@@ -18,6 +18,11 @@ import {
   cateringPlanService,
   parseCateringPlan,
 } from '../src/services/cateringPlanService.ts';
+import {
+  extractJsonArray,
+  translationService,
+  TranslationService,
+} from '../src/services/translationService.ts';
 
 // Mock meal object from TheMealDB API
 const MOCK_MEAL_ARRABIATA = {
@@ -438,4 +443,30 @@ test('Requirement R1 & R2 - parseCateringPlan validation and extraction', () => 
   assert.equal(parsed.menu.name, 'Italian Feast');
   assert.equal(parsed.menu.items.length, 3);
   assert.equal(parsed.shoppingList.length, 2);
+});
+
+test('Translation Layer - extractJsonArray parses array responses cleanly', () => {
+  const directArray = '["Pouletbrust", "Vollrahm", "Olivenöl"]';
+  assert.deepEqual(extractJsonArray(directArray), ['Pouletbrust', 'Vollrahm', 'Olivenöl']);
+
+  const fencedArray = '```json\n["Gehackte Tomaten", "Zwiebeln", "Knoblauch"]\n```';
+  assert.deepEqual(extractJsonArray(fencedArray), ['Gehackte Tomaten', 'Zwiebeln', 'Knoblauch']);
+
+  const arrayWithProse = 'Here is the translated list:\n["Peperoni", "Zucchetti"]\nHope this helps!';
+  assert.deepEqual(extractJsonArray(arrayWithProse), ['Peperoni', 'Zucchetti']);
+
+  const invalid = '{"not": "an array"}';
+  assert.equal(extractJsonArray(invalid), null);
+});
+
+test('Translation Layer - translateIngredientsToGerman handles empty, cached, and fallback cases', async () => {
+  const service = new TranslationService();
+
+  // Empty array
+  const empty = await service.translateIngredientsToGerman([]);
+  assert.deepEqual(empty, []);
+
+  // Empty strings
+  const emptyStrings = await service.translateIngredientsToGerman(['', '   ']);
+  assert.deepEqual(emptyStrings, ['', '']);
 });

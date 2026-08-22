@@ -12,8 +12,8 @@ import { isRecipeComplete, scaleRecipe } from '../../services/recipeService';
 import type { Recipe, StoredRecipe } from '../../types/recipe';
 import { RecipeEditor } from './RecipeEditor';
 import { RecipeMissingValues } from './RecipeMissingValues';
-import { recipeName, recipeSummary } from './fields';
-import type { Language, Strings } from './strings';
+import { recipeName, recipeSummary } from '../../constants/fields';
+import type { Language, Strings } from '../../i18n/strings';
 
 interface RecipeDetailViewProps {
   t: Strings;

@@ -4,7 +4,7 @@ import type {
   LLMRequestOptions,
   LLMResponse,
   LLMStreamChunk,
-} from '../types/llm.ts';
+} from '../types/llm';
 
 export class LLMServiceError extends Error {
   status?: number;

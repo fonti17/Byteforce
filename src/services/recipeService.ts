@@ -1,5 +1,6 @@
 import recipeConfig from '../../config/recipeConfig.json' with { type: 'json' };
 import { extractJsonObject } from '../lib/json.ts';
+import { normalizeUnit, roundQuantity, UNICODE_FRACTIONS } from '../lib/units.ts';
 import { llmService } from './llmService.ts';
 import {
   isExemptFromMealDb,
@@ -9,13 +10,12 @@ import {
   parseMealDbMeasure,
   type MealDbMeal,
 } from './mealDbService.ts';
-import { CATERING_UNITS } from '../types/cateringPlan.ts';
 import type {
   CateringMenuItem,
   CateringPlan,
   ShoppingListEntry,
-} from '../types/cateringPlan.ts';
-import type { GatheringResult } from '../types/gathering.ts';
+} from '../types/cateringPlan';
+import type { GatheringResult } from '../types/gathering';
 import type {
   Recipe,
   RecipeCourse,
@@ -25,16 +25,18 @@ import type {
   RecipeOptions,
   RecipeTurn,
   StoredRecipe,
-} from '../types/recipe.ts';
+} from '../types/recipe';
 import { RECIPE_COURSES, RECIPE_DIETS, RECIPE_REQUIRED_FIELDS } from '../types/recipe.ts';
-import type { LLMResponse } from '../types/llm.ts';
+import type { LLMResponse } from '../types/llm';
 
 export {
   isExemptFromMealDb,
   mealDbService,
   mealDbToRecipe,
+  normalizeUnit,
   parseMealDbInstructions,
   parseMealDbMeasure,
+  roundQuantity,
 };
 
 export class RecipeError extends Error {
@@ -48,81 +50,8 @@ export class RecipeError extends Error {
   }
 }
 
-const UNITS = new Set<string>(CATERING_UNITS);
 const COURSES = new Set<string>(RECIPE_COURSES);
 const DIETS = new Set<string>(RECIPE_DIETS);
-
-/**
- * Written units mapped onto the schema enum. Kitchen measures are converted to
- * a volume, because the shopping list only carries the six schema units.
- */
-const UNIT_ALIASES: Record<string, { unit: string; factor: number }> = {
-  g: { unit: 'g', factor: 1 },
-  gr: { unit: 'g', factor: 1 },
-  gramm: { unit: 'g', factor: 1 },
-  gram: { unit: 'g', factor: 1 },
-  grams: { unit: 'g', factor: 1 },
-  kg: { unit: 'kg', factor: 1 },
-  kilo: { unit: 'kg', factor: 1 },
-  kilogramm: { unit: 'kg', factor: 1 },
-  pfund: { unit: 'g', factor: 500 },
-  ml: { unit: 'ml', factor: 1 },
-  milliliter: { unit: 'ml', factor: 1 },
-  cl: { unit: 'ml', factor: 10 },
-  dl: { unit: 'ml', factor: 100 },
-  l: { unit: 'l', factor: 1 },
-  liter: { unit: 'l', factor: 1 },
-  litre: { unit: 'l', factor: 1 },
-  el: { unit: 'ml', factor: 15 },
-  esslöffel: { unit: 'ml', factor: 15 },
-  tbsp: { unit: 'ml', factor: 15 },
-  tablespoon: { unit: 'ml', factor: 15 },
-  tablespoons: { unit: 'ml', factor: 15 },
-  tblsp: { unit: 'ml', factor: 15 },
-  tl: { unit: 'ml', factor: 5 },
-  teelöffel: { unit: 'ml', factor: 5 },
-  tsp: { unit: 'ml', factor: 5 },
-  teaspoon: { unit: 'ml', factor: 5 },
-  teaspoons: { unit: 'ml', factor: 5 },
-  tasse: { unit: 'ml', factor: 250 },
-  tassen: { unit: 'ml', factor: 250 },
-  cup: { unit: 'ml', factor: 250 },
-  cups: { unit: 'ml', factor: 250 },
-  stück: { unit: 'piece', factor: 1 },
-  stk: { unit: 'piece', factor: 1 },
-  piece: { unit: 'piece', factor: 1 },
-  pieces: { unit: 'piece', factor: 1 },
-  pcs: { unit: 'piece', factor: 1 },
-  zehe: { unit: 'piece', factor: 1 },
-  zehen: { unit: 'piece', factor: 1 },
-  bund: { unit: 'piece', factor: 1 },
-  scheibe: { unit: 'piece', factor: 1 },
-  scheiben: { unit: 'piece', factor: 1 },
-  clove: { unit: 'piece', factor: 1 },
-  cloves: { unit: 'piece', factor: 1 },
-  pack: { unit: 'pack', factor: 1 },
-  packung: { unit: 'pack', factor: 1 },
-  packungen: { unit: 'pack', factor: 1 },
-  päckchen: { unit: 'pack', factor: 1 },
-  dose: { unit: 'pack', factor: 1 },
-  dosen: { unit: 'pack', factor: 1 },
-  can: { unit: 'pack', factor: 1 },
-  cans: { unit: 'pack', factor: 1 },
-  tin: { unit: 'pack', factor: 1 },
-  tins: { unit: 'pack', factor: 1 },
-  package: { unit: 'pack', factor: 1 },
-  packages: { unit: 'pack', factor: 1 },
-};
-
-/** Unicode fractions, common in pasted recipes. */
-const FRACTIONS: Record<string, number> = {
-  '½': 0.5,
-  '⅓': 1 / 3,
-  '⅔': 2 / 3,
-  '¼': 0.25,
-  '¾': 0.75,
-  '⅛': 0.125,
-};
 
 function asText(value: unknown): string | null {
   return typeof value === 'string' && value.trim() !== '' ? value.trim() : null;
@@ -131,26 +60,6 @@ function asText(value: unknown): string | null {
 function asNumber(value: unknown): number | null {
   const parsed = typeof value === 'string' ? Number(value.replace(/[\s']/g, '').replace(',', '.')) : value;
   return typeof parsed === 'number' && Number.isFinite(parsed) ? parsed : null;
-}
-
-/** Maps a written unit onto the schema enum, returning the converted quantity. */
-export function normalizeUnit(
-  quantity: number,
-  rawUnit: string | null
-): { quantity: number; unit: string } {
-  const key = (rawUnit ?? '').trim().toLocaleLowerCase('de-CH').replace(/\.$/, '');
-  if (key === '') return { quantity, unit: 'piece' };
-  if (UNITS.has(key)) return { quantity, unit: key };
-  const alias = UNIT_ALIASES[key];
-  if (!alias) return { quantity, unit: 'piece' };
-  return { quantity: quantity * alias.factor, unit: alias.unit };
-}
-
-/** Keeps quantities readable: whole counts, sensible decimals for weights. */
-export function roundQuantity(quantity: number, unit: string): number {
-  if (unit === 'piece' || unit === 'pack') return Math.max(1, Math.ceil(quantity));
-  if (unit === 'kg' || unit === 'l') return Math.round(quantity * 100) / 100;
-  return Math.round(quantity);
 }
 
 function parseIngredients(value: unknown): RecipeIngredient[] {
@@ -244,7 +153,7 @@ const STEP_HEADING =
   /^(zubereitung|preparation|instructions|anleitung|schritte|steps|method)\s*:?\s*$/iu;
 
 function parseAmount(raw: string): number | null {
-  if (FRACTIONS[raw] !== undefined) return FRACTIONS[raw];
+  if (UNICODE_FRACTIONS[raw] !== undefined) return UNICODE_FRACTIONS[raw];
   return asNumber(raw);
 }
 

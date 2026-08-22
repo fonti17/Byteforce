@@ -11,8 +11,8 @@ import {
 } from '@heroui/react';
 import { isRecipeComplete } from '../../services/recipeService';
 import type { StoredRecipe } from '../../types/recipe';
-import { recipeName, recipeSummary } from './fields';
-import type { Language, Strings } from './strings';
+import { recipeName, recipeSummary } from '../../constants/fields';
+import type { Language, Strings } from '../../i18n/strings';
 
 /**
  * Sample request from the design. It deliberately leaves date and meal open so

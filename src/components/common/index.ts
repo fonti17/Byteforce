@@ -1,0 +1,1 @@
+export { ProdegaLogo } from './ProdegaLogo';

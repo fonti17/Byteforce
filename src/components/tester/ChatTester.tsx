@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
-import { cateringPlanService } from '../services/cateringPlanService';
-import { gatheringService } from '../services/gatheringService';
-import type { GatheringState } from '../types/gathering';
-import type { ApertusModelId } from '../types/llm';
+import { cateringPlanService } from '../../services/cateringPlanService.ts';
+import { gatheringService } from '../../services/gatheringService.ts';
+import type { GatheringState } from '../../types/gathering';
+import type { ApertusModelId } from '../../types/llm';
 import './ChatTester.css';
 
 interface DisplayMessage {

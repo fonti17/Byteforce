@@ -46,6 +46,10 @@ export interface PricedShoppingListEntry extends ShoppingListEntry {
   estimatedTotalChf: number | null;
   productUrl: string | null;
   isAvailable: boolean | null;
+  /** German search term used for PRODEGA product lookup after translation. */
+  searchIngredient?: string | null;
+  /** Original untranslated ingredient name (e.g. in English). */
+  originalIngredient?: string | null;
 }
 
 /** Final application-owned payload after PRODEGA pricing was added. */

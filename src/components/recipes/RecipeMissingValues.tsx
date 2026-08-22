@@ -10,8 +10,8 @@ import {
 } from '@heroui/react';
 import { getMissingRecipeFields } from '../../services/recipeService';
 import type { Recipe, RecipeField } from '../../types/recipe';
-import { RECIPE_SERVINGS_PRESETS, recipeFieldLabel, recipeFieldPrompt } from './fields';
-import type { Strings } from './strings';
+import { RECIPE_SERVINGS_PRESETS, recipeFieldLabel, recipeFieldPrompt } from '../../constants/fields';
+import type { Strings } from '../../i18n/strings';
 
 interface RecipeMissingValuesProps {
   t: Strings;

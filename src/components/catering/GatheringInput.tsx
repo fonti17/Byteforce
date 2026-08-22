@@ -22,8 +22,8 @@ import {
   formatAnswer,
   questionPrompt,
   type QuestionId,
-} from './fields';
-import type { Language, Strings } from './strings';
+} from '../../constants/fields';
+import type { Language, Strings } from '../../i18n/strings';
 
 /** Leaf field a free-text answer should be interpreted against, per question. */
 const EXPECTED_FIELD: Record<QuestionId, GatheringField> = {

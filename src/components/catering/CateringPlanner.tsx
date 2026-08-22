@@ -12,11 +12,10 @@ import { GatheringInput } from './GatheringInput';
 import { GatheringResultView } from './GatheringResultView';
 import { MissingValues } from './MissingValues';
 import { PlannerLanding } from './PlannerLanding';
-import { RecipeDetailView } from './RecipeDetailView';
-import { RecipesView } from './RecipesView';
-import { openQuestions, type QuestionId } from './fields';
-import { ProdegaLogo } from './ProdegaLogo';
-import { strings, type Language } from './strings';
+import { RecipeDetailView, RecipesView } from '../recipes';
+import { ProdegaLogo } from '../common';
+import { openQuestions, type QuestionId } from '../../constants/fields';
+import { strings, type Language } from '../../i18n/strings';
 
 /**
  * Interactive prototype: Catering Planer → Missing values → Input → the JSON

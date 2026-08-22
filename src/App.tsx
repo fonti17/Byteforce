@@ -1,5 +1,5 @@
-import { CateringPlanner } from './components/catering/CateringPlanner';
-import { ChatTester } from './components/ChatTester';
+import { CateringPlanner } from './components/catering';
+import { ChatTester } from './components/tester';
 import './App.css';
 
 function App() {

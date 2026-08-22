@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "test": "node --experimental-strip-types --test tests/mealDb.test.mjs",
     "price-api": "python scraper/serve_prices.py",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
