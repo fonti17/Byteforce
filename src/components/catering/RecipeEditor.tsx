@@ -54,7 +54,7 @@ interface RecipeEditorProps {
 export function RecipeEditor({ t, recipe, onSave, onCancel }: RecipeEditorProps) {
   const [name, setName] = useState(recipe.name);
   const [description, setDescription] = useState(recipe.description ?? '');
-  const [servings, setServings] = useState(String(recipe.servings));
+  const [servings, setServings] = useState(recipe.servings === null ? '' : String(recipe.servings));
   const [course, setCourse] = useState<RecipeCourse | null>(recipe.course);
   const [diet, setDiet] = useState<RecipeDiet[]>(recipe.diet);
   const [ingredients, setIngredients] = useState<DraftIngredient[]>(() =>
@@ -95,7 +95,12 @@ export function RecipeEditor({ t, recipe, onSave, onCancel }: RecipeEditorProps)
     onSave({
       name: name.trim(),
       description: description.trim() === '' ? null : description.trim(),
-      servings: Number.isFinite(parsedServings) && parsedServings >= 1 ? Math.round(parsedServings) : 1,
+      // Left empty, the serving count stays open and the detail screen asks for
+      // it — nothing here invents a portion size.
+      servings:
+        servings.trim() !== '' && Number.isFinite(parsedServings) && parsedServings >= 1
+          ? Math.round(parsedServings)
+          : null,
       course,
       diet,
       ingredients: parsedIngredients,
@@ -135,7 +140,7 @@ export function RecipeEditor({ t, recipe, onSave, onCancel }: RecipeEditorProps)
         </TextField>
       </Field>
 
-      <Field label={t.recipeServingsLabel}>
+      <Field label={t.recipeServingsLabel} hint={t.recipeServingsHint}>
         <TextField
           aria-label={t.recipeServingsLabel}
           variant="secondary"

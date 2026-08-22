@@ -9,7 +9,9 @@ import {
   TextField,
   Typography,
 } from '@heroui/react';
+import { isRecipeComplete } from '../../services/recipeService';
 import type { StoredRecipe } from '../../types/recipe';
+import { recipeName, recipeSummary } from './fields';
 import type { Language, Strings } from './strings';
 
 /**
@@ -35,6 +37,8 @@ interface PlannerLandingProps {
   onToggleRecipe: (id: string) => void;
   onOpenRecipe: (id: string) => void;
   onOpenRecipes: () => void;
+  /** Starts the plan from the recipe selection alone, without a written request. */
+  onStartWithRecipes: () => void;
 }
 
 /**
@@ -52,10 +56,14 @@ export function PlannerLanding({
   onToggleRecipe,
   onOpenRecipe,
   onOpenRecipes,
+  onStartWithRecipes,
 }: PlannerLandingProps) {
   const [message, setMessage] = useState('');
+  // The list starts short and expands in place, so picking a recipe further down
+  // does not mean leaving the planner.
+  const [isExpanded, setIsExpanded] = useState(false);
   const canSubmit = message.trim().length > 0 && !isAnalysing;
-  const visible = recipes.slice(0, VISIBLE_RECIPES);
+  const visible = isExpanded ? recipes : recipes.slice(0, VISIBLE_RECIPES);
   const hiddenCount = recipes.length - visible.length;
 
   return (
@@ -133,19 +141,27 @@ export function PlannerLanding({
               >
                 <button
                   type="button"
-                  onClick={() => onToggleRecipe(record.id)}
-                  aria-pressed={selectedIds.includes(record.id)}
+                  onClick={() =>
+                    isRecipeComplete(record.recipe)
+                      ? onToggleRecipe(record.id)
+                      : onOpenRecipe(record.id)
+                  }
+                  aria-pressed={
+                    isRecipeComplete(record.recipe) ? selectedIds.includes(record.id) : undefined
+                  }
                   className="flex min-w-0 flex-1 cursor-[var(--cursor-interactive)] items-center gap-3 px-4 py-3 text-left hover:bg-surface-secondary focus-visible:focus-ring"
                 >
                   {selectedIds.includes(record.id) ? (
-                    <SuccessIcon className="size-4 shrink-0 text-success" />
+                    <SuccessIcon className="size-5 shrink-0 text-accent" />
                   ) : (
-                    <CircleDashedIcon className="size-4 shrink-0 text-muted" />
+                    <CircleDashedIcon className="size-5 shrink-0 text-muted" />
                   )}
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium">{record.recipe.name}</span>
+                    <span className="block truncate text-sm font-medium">
+                      {recipeName(record.recipe, t)}
+                    </span>
                     <span className="block text-xs text-muted">
-                      {`${t.recipeServings(record.recipe.servings)} · ${t.recipeIngredients(record.recipe.ingredients.length)}`}
+                      {recipeSummary(record.recipe, t)}
                     </span>
                   </span>
                 </button>
@@ -164,18 +180,31 @@ export function PlannerLanding({
 
         <div className="flex items-baseline justify-between gap-3">
           <Typography.Paragraph size="sm" className="text-muted">
-            {t.recipeLandingHint}
+            {selectedIds.length > 0 ? t.recipeSelected(selectedIds.length) : t.recipeLandingHint}
           </Typography.Paragraph>
-          {hiddenCount > 0 ? (
+          {recipes.length > VISIBLE_RECIPES ? (
             <button
               type="button"
-              onClick={onOpenRecipes}
+              onClick={() => setIsExpanded(!isExpanded)}
+              aria-expanded={isExpanded}
               className="shrink-0 cursor-[var(--cursor-interactive)] text-xs text-accent hover:underline focus-visible:focus-ring"
             >
-              {t.recipeMore(hiddenCount)}
+              {isExpanded ? t.recipeLess : t.recipeMore(hiddenCount)}
             </button>
           ) : null}
         </div>
+
+        {/* Picked dishes are enough to start: the question walk asks for the rest. */}
+        {selectedIds.length > 0 ? (
+          <div className="flex flex-col items-stretch gap-2">
+            <Button fullWidth isDisabled={isAnalysing} onPress={onStartWithRecipes}>
+              {t.recipeStartWith(selectedIds.length)}
+            </Button>
+            <Typography.Paragraph size="sm" className="mx-auto text-muted">
+              {t.recipeStartHint}
+            </Typography.Paragraph>
+          </div>
+        ) : null}
       </section>
 
       <Typography.Paragraph size="sm" className="text-muted">
