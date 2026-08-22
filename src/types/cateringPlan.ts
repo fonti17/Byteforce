@@ -38,6 +38,32 @@ export interface CateringPlan {
   budget: CateringPlanBudget;
 }
 
+export interface PricedShoppingListEntry extends ShoppingListEntry {
+  pricingStatus: 'matched' | 'not_found' | 'quantity_unknown';
+  pricingMessage: string | null;
+  productName: string | null;
+  articleNumber: string | null;
+  unitPriceChf: number | null;
+  priceUnit: string | null;
+  packageQuantity: string | null;
+  packagePriceChf: number | null;
+  packagesNeeded: number | null;
+  estimatedTotalChf: number | null;
+  productUrl: string | null;
+  isAvailable: boolean | null;
+}
+
+/** Final application-owned payload after PRODEGA pricing was added. */
+export interface PricedCateringPlan extends Omit<CateringPlan, 'shoppingList'> {
+  shoppingList: PricedShoppingListEntry[];
+  pricing: {
+    source: 'PRODEGA';
+    currency: 'CHF';
+    estimatedTotal: number;
+    isComplete: boolean;
+  };
+}
+
 export interface CateringPlanOptions extends LLMRequestOptions {
   language?: 'de' | 'en';
 }

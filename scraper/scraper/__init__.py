@@ -15,6 +15,7 @@ from scraper.models import SearchResult, CatalogExportDataset
 from scraper.extractors.catalog import CatalogScraper, CatalogExtractor
 from scraper.extractors.promotions import PromoExtractor, PromotionExtractor
 from scraper.extractors.search import SearchService, SearchExtractor
+from scraper.price_service import IngredientRequest, PricedIngredient, PriceService
 from scraper.storage.export import ExportService, BatchCatalogExporter
 from scraper.security import (
     sanitize_search_query,
@@ -73,6 +74,9 @@ __all__ = [
     "PromotionExtractor",
     "SearchService",
     "SearchExtractor",
+    "IngredientRequest",
+    "PricedIngredient",
+    "PriceService",
     "ExportService",
     "BatchCatalogExporter",
     "sanitize_search_query",
