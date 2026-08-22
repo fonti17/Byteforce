@@ -105,6 +105,17 @@ export const strings = {
     packSize: 'Packungsgröße',
     packs: 'Packungen',
     incompletePricing: 'Die Summe enthält nur Positionen mit eindeutig berechenbarer Packungsmenge.',
+    leftoverLabel: 'Rest',
+    averageLeftover: 'Ø Überschuss',
+    noLeftover: 'Kein Überschuss',
+    wasteRisk: {
+      none: 'Kein Abfall',
+      low: 'Lagerfähig',
+      medium: 'Rest verwertbar',
+      high: 'Abfallrisiko',
+    },
+    pricingProgress: (completed: number, total: number) =>
+      `Produkte werden bei PRODEGA gesucht … ${completed}/${total}`,
     itemCount: (count: number) =>
       count === 1 ? '1 Position' : `${count} Positionen`,
     uncategorised: 'Weitere Zutaten',
@@ -319,6 +330,17 @@ export const strings = {
     packSize: 'Pack size',
     packs: 'packs',
     incompletePricing: 'The total only includes items whose required package count could be calculated.',
+    leftoverLabel: 'Left over',
+    averageLeftover: 'Avg. surplus',
+    noLeftover: 'No surplus',
+    wasteRisk: {
+      none: 'No waste',
+      low: 'Keeps well',
+      medium: 'Surplus usable',
+      high: 'Waste risk',
+    },
+    pricingProgress: (completed: number, total: number) =>
+      `Searching products at PRODEGA … ${completed}/${total}`,
     itemCount: (count: number) => (count === 1 ? '1 item' : `${count} items`),
     uncategorised: 'Other ingredients',
     backToBrief: 'Change answers',

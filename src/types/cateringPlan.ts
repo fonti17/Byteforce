@@ -33,6 +33,12 @@ export interface CateringPlan {
   shoppingList: ShoppingListEntry[];
 }
 
+/**
+ * How likely the surplus of a purchase is thrown away. Judged by the model from
+ * how perishable the ingredient is and how large the surplus turns out.
+ */
+export type WasteRisk = 'none' | 'low' | 'medium' | 'high';
+
 export interface PricedShoppingListEntry extends ShoppingListEntry {
   pricingStatus: 'matched' | 'not_found' | 'quantity_unknown';
   pricingMessage: string | null;
@@ -46,6 +52,21 @@ export interface PricedShoppingListEntry extends ShoppingListEntry {
   estimatedTotalChf: number | null;
   productUrl: string | null;
   isAvailable: boolean | null;
+  /** True while the chosen article is on a PRODEGA action price. */
+  isAction: boolean | null;
+  /** What one sales unit contains, expressed in `unit`. */
+  packageContentQuantity: number | null;
+  /** `packagesNeeded × packageContentQuantity`, expressed in `unit`. */
+  purchasedQuantity: number | null;
+  /** How much of the purchase is not needed by the menu, expressed in `unit`. */
+  leftoverQuantity: number | null;
+  /** `leftoverQuantity` as a share of the purchase, 0–1. */
+  leftoverShare: number | null;
+  wasteRisk: WasteRisk | null;
+  /** The model's one-sentence justification for this article over the others. */
+  selectionReason: string | null;
+  /** How many live catalog articles the choice was made from. */
+  candidateCount: number | null;
 }
 
 /** Final application-owned payload after PRODEGA pricing was added. */
@@ -56,6 +77,11 @@ export interface PricedCateringPlan extends Omit<CateringPlan, 'shoppingList'> {
     currency: 'CHF';
     estimatedTotal: number;
     isComplete: boolean;
+    /**
+     * Share of the purchased amount that exceeds what the menu needs, averaged
+     * over the priced positions. `null` while nothing could be calculated.
+     */
+    averageLeftoverShare: number | null;
   };
 }
 

@@ -1,5 +1,5 @@
 import { Alert, Button, Card, Chip, IconChevronLeft, Spinner, Typography } from '@heroui/react';
-import type { PricedCateringPlan, PricedShoppingListEntry } from '../../types/cateringPlan';
+import type { PricedCateringPlan, PricedShoppingListEntry, WasteRisk } from '../../types/cateringPlan';
 import type { GatheringResult } from '../../types/gathering';
 import type { Language, Strings } from './strings';
 
@@ -10,6 +10,8 @@ interface CateringPlanViewProps {
   plan: PricedCateringPlan | null;
   isPlanning: boolean;
   streamedText: string;
+  /** How many shopping list positions the model has priced so far. */
+  pricingProgress?: { completed: number; total: number } | null;
   /** Number of recipes folded into this plan, shown as provenance. */
   usedRecipes: number;
   /** Target margin / earnings to add on top in business mode. */
@@ -45,6 +47,21 @@ function formatMoney(amount: number, currency: string, language: Language): stri
   }).format(amount);
 }
 
+/** Colours the surplus by how likely it ends up in the bin. */
+const WASTE_RISK_STYLE: Record<WasteRisk, string> = {
+  none: 'bg-emerald-100 text-emerald-800',
+  low: 'bg-emerald-100 text-emerald-800',
+  medium: 'bg-amber-100 text-amber-800',
+  high: 'bg-red-100 text-red-800',
+};
+
+function formatAmount(quantity: number, unit: string, t: Strings, language: Language): string {
+  const amount = new Intl.NumberFormat(localeOf(language), { maximumFractionDigits: 2 }).format(
+    quantity
+  );
+  return `${amount} ${t.units[unit as keyof Strings['units']] ?? unit}`;
+}
+
 /** Shopping list grouped by category, in the order the categories first appear. */
 function groupByCategory(entries: PricedShoppingListEntry[], fallback: string) {
   const groups = new Map<string, PricedShoppingListEntry[]>();
@@ -68,6 +85,7 @@ export function CateringPlanView({
   plan,
   isPlanning,
   streamedText: _streamedText,
+  pricingProgress,
   usedRecipes,
   targetMargin,
   onlyOwnRecipes = false,
@@ -131,7 +149,11 @@ export function CateringPlanView({
         <Card className="flex flex-col items-center gap-3 p-8 text-center bg-white border border-neutral-200 rounded-lg shadow-xs">
           <Spinner />
           <span className="text-sm font-bold text-neutral-900">{t.planning}</span>
-          <span className="text-xs text-neutral-500">{t.planningHint}</span>
+          <span className="text-xs text-neutral-500">
+            {pricingProgress
+              ? t.pricingProgress(pricingProgress.completed, pricingProgress.total)
+              : t.planningHint}
+          </span>
         </Card>
       ) : null}
 
@@ -211,7 +233,12 @@ export function CateringPlanView({
                   ) : null}
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  {plan.pricing.averageLeftoverShare !== null ? (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-bold bg-neutral-100 text-neutral-700">
+                      {`${t.averageLeftover}: ${Math.round(plan.pricing.averageLeftoverShare * 100)}%`}
+                    </span>
+                  ) : null}
                   {hasBudgetLimit ? (
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded text-xs font-bold ${
                       withinBudget ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
@@ -278,11 +305,36 @@ export function CateringPlanView({
                           {entry.pricingStatus === 'quantity_unknown' && entry.pricingMessage ? (
                             <span className="block text-xs text-amber-600 font-medium mt-0.5">{entry.pricingMessage}</span>
                           ) : null}
+                          {entry.wasteRisk !== null && entry.leftoverQuantity !== null ? (
+                            <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                              <span
+                                className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold ${WASTE_RISK_STYLE[entry.wasteRisk]}`}
+                              >
+                                {t.wasteRisk[entry.wasteRisk]}
+                              </span>
+                              <span className="text-xs text-neutral-500 tabular-nums">
+                                {entry.leftoverQuantity > 0
+                                  ? `${t.leftoverLabel}: ${formatAmount(entry.leftoverQuantity, entry.unit, t, language)}` +
+                                    (entry.leftoverShare !== null
+                                      ? ` (${Math.round(entry.leftoverShare * 100)}%)`
+                                      : '')
+                                  : t.noLeftover}
+                              </span>
+                            </span>
+                          ) : null}
+                          {entry.selectionReason ? (
+                            <span className="block text-xs text-neutral-500 italic mt-0.5 leading-snug">
+                              {entry.selectionReason}
+                            </span>
+                          ) : null}
                         </span>
                         {entry.unitPriceChf !== null ? (
                           <span className="shrink-0 text-right">
                             <span className="inline-flex items-center px-2 py-0.5 rounded bg-primary text-white font-bold text-sm tracking-tight shadow-xs">
                               {formatMoney(entry.unitPriceChf, 'CHF', language)}
+                              {entry.priceUnit ? (
+                                <span className="font-semibold opacity-80">{` / ${entry.priceUnit}`}</span>
+                              ) : null}
                             </span>
                             <span className="block text-xs text-neutral-500 mt-1">
                               {entry.packageQuantity ? `${t.packSize}: ${entry.packageQuantity}` : ''}

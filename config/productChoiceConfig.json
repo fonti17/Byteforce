@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PRODEGA Product Choice",
+  "description": "One purchase decision for a single shopping list position. Every candidate offered to the model already carries its fully costed outcome — packs needed, total price, leftover — calculated by the application from the live catalog. The model only decides which of those outcomes is the better buy, so this answer carries the choice and its justification, not arithmetic.",
+  "type": "object",
+  "required": [
+    "articleNumber",
+    "wasteRisk",
+    "reason"
+  ],
+  "properties": {
+    "articleNumber": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Article number of the chosen candidate, copied character for character from the candidate list. null when no candidate is the requested ingredient."
+    },
+    "wasteRisk": {
+      "type": "string",
+      "enum": [
+        "none",
+        "low",
+        "medium",
+        "high"
+      ],
+      "description": "How likely the leftover of the chosen candidate is thrown away, judged from the leftover stated for it and from how well the ingredient keeps."
+    },
+    "reason": {
+      "type": "string",
+      "description": "One short sentence naming why this article beats the alternatives on total price and on leftover."
+    },
+    "packageContentQuantity": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "exclusiveMinimum": 0,
+      "description": "Only needed when the chosen candidate states contentPerSalesUnit as null: how much of the requested unit one purchasable sales unit contains, read from the title or the approximate weight. null otherwise."
+    },
+    "runnerUpArticleNumber": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Article number of the second best candidate, or null when there is no sensible alternative."
+    }
+  },
+  "additionalProperties": false
+}

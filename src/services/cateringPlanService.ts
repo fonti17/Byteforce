@@ -58,7 +58,7 @@ function buildSystemPrompt(
     hasRecipes
       ? '1. The supplied recipes are already part of the menu. Complete the menu around them with what is still missing, for example a side, a salad, bread, a dessert, or drinks.'
       : '1. Choose one coherent menu suitable for the event type, date, meal, participant count, and budget.',
-    '2. Derive all required ingredients from that menu.',
+    '2. Derive all required canonical ingredients from that menu.',
     '3. Calculate realistic total purchase quantities for the complete participant count.',
     '4. Use the supplied budget only as guidance when choosing the menu. Do not estimate prices.',
     '',

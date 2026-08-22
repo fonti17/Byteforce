@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { cateringPlanService } from '../services/cateringPlanService';
-import { priceService } from '../services/priceService';
+import { llmPriceService } from '../services/llmPriceService';
 import type {
   CateringPlan,
   CateringPlanInput,
@@ -22,6 +22,10 @@ export function useCateringPlan(options: CateringPlanOptions = {}) {
   const [isPlanning, setIsPlanning] = useState(false);
   const [streamedText, setStreamedText] = useState('');
   const [source, setSource] = useState<PlanSource | null>(null);
+  /** How many shopping list positions the model has priced so far. */
+  const [pricingProgress, setPricingProgress] = useState<{ completed: number; total: number } | null>(
+    null
+  );
   const [error, setError] = useState<Error | null>(null);
 
   // Callers pass an options literal, which would otherwise re-create `generate`
@@ -75,10 +79,18 @@ export function useCateringPlan(options: CateringPlanOptions = {}) {
       }
 
       const pricingStartedAt = performance.now();
-      const pricedPlan = await priceService.enrich(basePlan);
+      setPricingProgress({ completed: 0, total: basePlan.shoppingList.length });
+      const pricedPlan = await llmPriceService.enrich(basePlan, {
+        language: optionsRef.current.language,
+        model: optionsRef.current.model,
+        onProgress: (completed, total) => setPricingProgress({ completed, total }),
+      });
       console.info(
-        `[catering-plan] Pricing completed in ${Math.round(performance.now() - pricingStartedAt)} ms ` +
-        `for ${basePlan.shoppingList.length} ingredients`
+        `[catering-plan] LLM pricing completed in ${Math.round(performance.now() - pricingStartedAt)} ms ` +
+        `for ${basePlan.shoppingList.length} ingredients ` +
+        `(average leftover ${pricedPlan.pricing.averageLeftoverShare === null
+          ? 'n/a'
+          : `${Math.round(pricedPlan.pricing.averageLeftoverShare * 100)}%`})`
       );
       setPlan(pricedPlan);
       setSource(planSource);
@@ -96,6 +108,7 @@ export function useCateringPlan(options: CateringPlanOptions = {}) {
     } finally {
       pendingRef.current = false;
       setIsPlanning(false);
+      setPricingProgress(null);
     }
   }, []);
 
@@ -103,8 +116,9 @@ export function useCateringPlan(options: CateringPlanOptions = {}) {
     setPlan(null);
     setSource(null);
     setStreamedText('');
+    setPricingProgress(null);
     setError(null);
   }, []);
 
-  return { plan, isPlanning, streamedText, source, error, generate, reset };
+  return { plan, isPlanning, streamedText, source, pricingProgress, error, generate, reset };
 }

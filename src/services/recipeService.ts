@@ -522,6 +522,7 @@ function buildSystemPrompt(language: RecipeOptions['language']): string {
     '',
     'Rules:',
     '- Use only information contained in the pasted text. Never invent ingredients or steps.',
+    '- Only use canonical ingredient names.',
     '- servings is the number of people the listed quantities are for. Use null if the text does not say it. Never guess a number.',
     '- Convert every amount to one of the schema units: g, kg, ml, l, piece, pack.',
     '- Convert kitchen measures: 1 tablespoon/EL = 15 ml, 1 teaspoon/TL = 5 ml, 1 cup/Tasse = 250 ml, 1 dl = 100 ml.',

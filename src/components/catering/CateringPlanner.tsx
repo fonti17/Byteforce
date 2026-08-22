@@ -116,6 +116,7 @@ export function CateringPlanner() {
     plan,
     isPlanning,
     streamedText,
+    pricingProgress,
     source: planSource,
     error: planError,
     generate: generatePlan,
@@ -381,6 +382,7 @@ export function CateringPlanner() {
             plan={plan}
             isPlanning={isPlanning}
             streamedText={streamedText}
+            pricingProgress={pricingProgress}
             usedRecipes={recipes.selectedIds.length}
             targetMargin={targetMargin}
             onlyOwnRecipes={isOnlyOwnActive}
