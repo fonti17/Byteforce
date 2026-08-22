@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Catering Information Gathering - Part 1",
+  "description": "Minimum information required before continuing to detailed catering preferences.",
+  "type": "object",
+  "required": [
+    "eventType",
+    "participantCount",
+    "meal",
+    "budget"
+  ],
+  "properties": {
+    "eventType": {
+      "type": "string",
+      "enum": [
+        "private",
+        "business",
+        "team_event",
+        "other"
+      ]
+    },
+    "date": {
+      "type": "object",
+      "required": [
+        "day",
+        "month"
+      ],
+      "properties": {
+        "day": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "maximum": 31
+        },
+        "month": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "maximum": 12
+        },
+        "year": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "participantCount": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "meal": {
+      "type": "string",
+      "enum": [
+        "breakfast",
+        "lunch",
+        "dinner",
+        "apero",
+        "buffet",
+        "other"
+      ]
+    },
+    "budget": {
+      "type": "object",
+      "required": [
+        "amount",
+        "currency"
+      ],
+      "properties": {
+        "amount": {
+          "type": "number",
+          "minimum": 0
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "context": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Optional preferences, dietary requirements, constraints, and other useful details."
+    }
+  },
+  "additionalProperties": false
+}

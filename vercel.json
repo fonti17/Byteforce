@@ -1,0 +1,24 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "functions": {
+    "api/transgourmet/search.ts": {
+      "maxDuration": 60
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/stoney/:path*",
+      "destination": "https://llm.stoney-cloud.com/:path*"
+    },
+    {
+      "source": "/api/onprem/:path*",
+      "destination": "https://llm-api2.b.onprem.ai/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
