@@ -1,16 +1,26 @@
-import type { CatalogSearchResponse, TransgourmetProduct } from './types.ts';
+import type { CatalogBatchResponse, CatalogCandidates } from './types.ts';
 
 /**
  * Live product candidates from `web.transgourmet.ch/de/webshop`.
  *
  * The webshop itself cannot be called from the browser: it opens a session with
  * a redirect chain across two hosts that hand out cookies of the same name, and
- * it sends no CORS headers. The dev server walks that chain instead and serves
- * the decoded catalog as JSON under its own origin — see
- * `src/server/transgourmetProxy.ts`.
+ * it sends no CORS headers. A server walks that chain instead and serves the
+ * decoded catalog as JSON under this app's own origin — the Vite plugin in
+ * `src/server/transgourmetProxy.ts` during development, the function in
+ * `api/transgourmet/search.ts` once deployed.
+ *
+ * A whole shopping list is asked for in one request. Each position needs
+ * several catalog searches before one of them matches, and on a serverless host
+ * every request is its own instance with its own session handshake and its own
+ * rate limit — so the list travels as a unit and the server walks it.
  */
 
 const endpoint = import.meta.env.VITE_CATALOG_ENDPOINT ?? '/api/transgourmet/search';
+
+const DEFAULT_LIMIT = 12;
+/** Kept under the server's own ceiling, so a long list is split rather than refused. */
+const CHUNK_SIZE = 40;
 
 export class CatalogError extends Error {
   constructor(message: string) {
@@ -19,65 +29,48 @@ export class CatalogError extends Error {
   }
 }
 
-/**
- * Search terms tried in order until one returns products. A shopping list says
- * "frische Rüebli, geschält"; the catalog is indexed on "Rüebli".
- */
-function searchTermsFor(ingredient: string): string[] {
-  const cleaned = ingredient
-    .replace(/\(.*?\)/g, ' ')
-    .replace(/[,;/]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+async function requestChunk(
+  ingredients: string[],
+  limit: number,
+  signal?: AbortSignal
+): Promise<CatalogCandidates[]> {
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ingredients, limit }),
+    signal,
+  });
 
-  const words = cleaned.split(' ').filter((word) => word.length > 2);
-  const terms = [cleaned];
-
-  // Swiss recipes name the state before the food: "frische Peterli" → "Peterli".
-  const withoutQualifier = words.filter(
-    (word) => !/^(frisch|frische|frischer|frisches|getrocknet|getrocknete|bio|ganze|ganzer|gemahlen|gemahlene|geschält|geschälte|gehackt|gehackte|fresh|dried|whole|ground|chopped|peeled)$/i.test(word)
-  );
-  if (withoutQualifier.length > 0 && withoutQualifier.length < words.length) {
-    terms.push(withoutQualifier.join(' '));
-  }
-
-  // The head noun alone is the widest net the catalog still answers usefully.
-  const longest = [...withoutQualifier].sort((a, b) => b.length - a.length)[0];
-  if (longest) terms.push(longest);
-
-  return [...new Set(terms.filter((term) => term.length > 1))];
-}
-
-async function requestOnce(term: string, limit: number, signal?: AbortSignal): Promise<CatalogSearchResponse> {
-  const url = `${endpoint}?q=${encodeURIComponent(term)}&limit=${limit}`;
-  const response = await fetch(url, { signal });
   if (!response.ok) {
     const detail = await response.text().catch(() => '');
-    throw new CatalogError(`Catalog search for "${term}" failed with HTTP ${response.status}. ${detail}`);
+    throw new CatalogError(
+      `Catalog search for ${ingredients.length} ingredients failed with HTTP ${response.status}. ${detail}`
+    );
   }
-  return (await response.json()) as CatalogSearchResponse;
+
+  return ((await response.json()) as CatalogBatchResponse).results;
 }
 
 /**
- * Candidates for one ingredient. The broader fallback terms are only tried
- * while nothing was found, so a precise name still wins when it matches.
+ * Candidates for every ingredient of a shopping list, keyed by the ingredient
+ * as it was asked for.
+ *
+ * Repeated ingredients are asked for once. A position the catalog could not be
+ * reached for carries its `error` and leaves the rest of the list usable.
  */
-export async function findCandidates(
-  ingredient: string,
-  { limit = 12, signal }: { limit?: number; signal?: AbortSignal } = {}
-): Promise<{ term: string; products: TransgourmetProduct[] }> {
-  let lastError: unknown = null;
+export async function findCandidatesForAll(
+  ingredients: string[],
+  { limit = DEFAULT_LIMIT, signal }: { limit?: number; signal?: AbortSignal } = {}
+): Promise<Map<string, CatalogCandidates>> {
+  const unique = [...new Set(ingredients.map((ingredient) => ingredient.trim()))].filter(
+    (ingredient) => ingredient !== ''
+  );
 
-  for (const term of searchTermsFor(ingredient)) {
-    try {
-      const result = await requestOnce(term, limit, signal);
-      if (result.products.length > 0) return { term, products: result.products };
-    } catch (error) {
-      if (error instanceof DOMException && error.name === 'AbortError') throw error;
-      lastError = error;
-    }
+  const found = new Map<string, CatalogCandidates>();
+  for (let start = 0; start < unique.length; start += CHUNK_SIZE) {
+    const results = await requestChunk(unique.slice(start, start + CHUNK_SIZE), limit, signal);
+    for (const result of results) found.set(result.ingredient, result);
   }
 
-  if (lastError) throw lastError;
-  return { term: ingredient, products: [] };
+  return found;
 }

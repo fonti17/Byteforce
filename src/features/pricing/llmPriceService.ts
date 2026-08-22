@@ -5,7 +5,7 @@ import {
   buildProductChoiceSystemPrompt,
   parseProductChoice,
 } from './productChoicePrompt';
-import { findCandidates } from './transgourmet/catalog';
+import { findCandidatesForAll } from './transgourmet/catalog';
 import { purchaseOutcome, salesUnitContent } from './transgourmet/packContent';
 import type {
   CateringPlan,
@@ -14,7 +14,7 @@ import type {
   ShoppingListEntry,
 } from '@/features/catering-plan/types';
 import type { LLMRequestOptions } from '@/shared/llm/types';
-import type { TransgourmetProduct } from './transgourmet/types';
+import type { CatalogCandidates } from './transgourmet/types';
 
 /**
  * Prices a shopping list against the live PRODEGA assortment.
@@ -25,6 +25,11 @@ import type { TransgourmetProduct } from './transgourmet/types';
  * five 1 kg packs but leaves half a kilo of fresh meat to throw away — and that
  * choice is made by one asynchronous model call per position. The arithmetic
  * that follows the choice is done here, not by the model.
+ *
+ * The two halves are asked for differently. Candidates for the whole list come
+ * in one request, because each position costs the server several webshop
+ * searches behind one session; the model calls that follow run several at a
+ * time, because they are independent and a slow one must not hold up the rest.
  */
 
 export interface LlmPricingOptions extends LLMRequestOptions {
@@ -78,22 +83,23 @@ function unpricedEntry(
 
 async function priceEntry(
   entry: ShoppingListEntry,
+  found: CatalogCandidates | null,
   options: LlmPricingOptions
 ): Promise<PricedShoppingListEntry> {
-  const { language, candidateLimit = DEFAULT_CANDIDATE_LIMIT, signal } = options;
+  const { language, signal } = options;
   const german = language !== 'en';
 
-  let candidates: TransgourmetProduct[];
-  try {
-    candidates = (await findCandidates(entry.ingredient, { limit: candidateLimit, signal })).products;
-  } catch (error) {
-    if (error instanceof DOMException && error.name === 'AbortError') throw error;
+  // No entry at all means the batch request never arrived; an `error` on the
+  // entry means this one position failed while the rest of the list was fine.
+  if (found === null || found.error !== null) {
     return unpricedEntry(
       entry,
       german ? 'Der PRODEGA-Webshop war nicht erreichbar.' : 'The PRODEGA webshop was unreachable.',
       null
     );
   }
+
+  const candidates = found.products;
 
   if (candidates.length === 0) {
     return unpricedEntry(
@@ -213,21 +219,41 @@ async function mapWithConcurrency<T, R>(
 
 export const llmPriceService = {
   /**
-   * The merged shopping list priced position by position. Every position is one
-   * asynchronous model call over its own live candidates, so a slow or failing
-   * position does not hold up the rest of the list.
+   * The merged shopping list priced position by position. The live candidates
+   * for every position are read first, in one request; each position is then one
+   * asynchronous model call over them, so a slow or failing position does not
+   * hold up the rest of the list.
    */
   async enrich(plan: CateringPlan, options: LlmPricingOptions = {}): Promise<PricedCateringPlan> {
-    const { concurrency = DEFAULT_CONCURRENCY, onProgress, language } = options;
+    const {
+      concurrency = DEFAULT_CONCURRENCY,
+      candidateLimit = DEFAULT_CANDIDATE_LIMIT,
+      onProgress,
+      language,
+      signal,
+    } = options;
     const german = language !== 'en';
     const total = plan.shoppingList.length;
     let completed = 0;
+
+    // An empty map prices nothing but still returns the list — every position
+    // then reports the webshop as unreachable, as it would have one by one.
+    let candidates = new Map<string, CatalogCandidates>();
+    try {
+      candidates = await findCandidatesForAll(
+        plan.shoppingList.map((entry) => entry.ingredient),
+        { limit: candidateLimit, signal }
+      );
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') throw error;
+      console.warn('[llm-price] catalog candidates could not be read', error);
+    }
 
     const shoppingList = await mapWithConcurrency(plan.shoppingList, concurrency, async (entry) => {
       const startedAt = performance.now();
       let priced: PricedShoppingListEntry;
       try {
-        priced = await priceEntry(entry, options);
+        priced = await priceEntry(entry, candidates.get(entry.ingredient.trim()) ?? null, options);
       } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') throw error;
         console.warn(`[llm-price] "${entry.ingredient}" failed`, error);
