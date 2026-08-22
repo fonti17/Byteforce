@@ -42,7 +42,6 @@ export function RecipeDetailView({
   participantCount,
   onSave,
   onDelete,
-  onAddNew,
   onUpload,
   onBack,
 }: RecipeDetailViewProps) {
