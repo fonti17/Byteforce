@@ -189,7 +189,7 @@ export function CateringPlanner() {
       <header className="sticky top-0 z-10 border-b border-border bg-surface/80 backdrop-blur">
         <div className="mx-auto flex max-w-2xl items-center justify-between gap-4 px-5 py-3">
           <div className="flex items-center gap-2.5">
-            <span className="size-7 rounded-lg bg-accent" aria-hidden="true" />
+              <img src="/images/icon-512x512.png" alt={t.brand} className="size-7 rounded-lg" />
             <span className="text-base font-bold tracking-tight">{t.brand}</span>
           </div>
           <Button
