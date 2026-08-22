@@ -194,12 +194,6 @@ export function CateringPlanner() {
     [setStep]
   );
 
-  // A picked menu is a starting point on its own: nothing has been read from a
-  // request, so the walk simply asks for every value the schema still needs.
-  const handleStartWithRecipes = useCallback(() => {
-    startQuestions(openQuestionList);
-  }, [openQuestionList, startQuestions]);
-
   const handleAnalyse = useCallback(
     async (message: string, margin?: number | null) => {
       if (plannerMode === 'business') {
@@ -207,7 +201,9 @@ export function CateringPlanner() {
       } else {
         setTargetMargin(null);
       }
-      await analyse(message);
+      if (message.trim()) {
+        await analyse(message);
+      }
       setStep('brief');
     },
     [analyse, plannerMode, setStep]
@@ -293,11 +289,10 @@ export function CateringPlanner() {
             onToggleOnlyOwnRecipes={setOnlyOwnRecipes}
             recipes={recipes.recipes}
             selectedIds={recipes.selectedIds}
-            onAnalyse={(message, targetMargin) => void handleAnalyse(message, targetMargin)}
+            onAnalyse={(message, margin) => void handleAnalyse(message, margin)}
             onToggleRecipe={recipes.toggleSelected}
             onOpenRecipe={(id) => openRecipeDetail(id, 'landing')}
             onOpenRecipes={() => openRecipes('landing')}
-            onStartWithRecipes={handleStartWithRecipes}
           />
         ) : null}
 
