@@ -15,6 +15,7 @@ import { PlannerLanding } from './PlannerLanding';
 import { RecipeDetailView } from './RecipeDetailView';
 import { RecipesView } from './RecipesView';
 import { openQuestions, type QuestionId } from './fields';
+import { ProdegaLogo } from './ProdegaLogo';
 import { strings, type Language } from './strings';
 
 /**
@@ -224,26 +225,29 @@ export function CateringPlanner() {
   );
 
   return (
-    <div className="min-h-full bg-background text-foreground">
-      <header className="sticky top-0 z-10 border-b border-border bg-surface/80 backdrop-blur">
-        <div className="mx-auto flex max-w-2xl items-center justify-between gap-4 px-5 py-3">
-          <div className="flex items-center gap-2.5">
-              <img src="/images/icon-512x512.png" alt={t.brand} className="size-7 rounded-lg" />
-            <span className="text-base font-bold tracking-tight">{t.brand}</span>
+    <div className="min-h-screen bg-white text-neutral-900 flex flex-col">
+      <header className="sticky top-0 z-50 bg-[#f8f8f8] border-b border-neutral-200 shadow-xs">
+        <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+          <div className="flex items-center gap-3">
+            <ProdegaLogo className="h-7 w-auto" />
+            <span className="text-neutral-300">|</span>
+            <span className="text-sm font-bold tracking-tight text-neutral-800 uppercase">{t.brand}</span>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            aria-label={language === 'de' ? 'Switch to English' : 'Auf Deutsch wechseln'}
-            className="font-mono"
-            onPress={() => setLanguage(language === 'de' ? 'en' : 'de')}
-          >
-            {t.languageLabel}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              aria-label={language === 'de' ? 'Switch to English' : 'Auf Deutsch wechseln'}
+              className="font-medium text-xs rounded border-neutral-300 text-neutral-700 hover:border-primary hover:text-primary transition-colors"
+              onPress={() => setLanguage(language === 'de' ? 'en' : 'de')}
+            >
+              {t.languageLabel}
+            </Button>
+          </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-2xl px-5 pt-8 pb-16">
+      <main className="mx-auto max-w-4xl w-full px-4 pt-6 pb-20 sm:px-6 flex-1">
         {step === 'landing' ? (
           <PlannerLanding
             t={t}
@@ -271,6 +275,7 @@ export function CateringPlanner() {
             onBack={handleRestart}
             onContinue={() => startQuestions(openQuestionList)}
             onEdit={(question) => startQuestions([question])}
+            onUpdateContext={(context) => apply({ context })}
           />
         ) : null}
 
