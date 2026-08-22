@@ -20,10 +20,12 @@
     "noFallthroughCasesInSwitch": true
   },
   "include": [
+    "api",
     "vite.config.ts",
     "src/server",
     "src/features/pricing/transgourmet/turbostream.ts",
     "src/features/pricing/transgourmet/articles.ts",
+    "src/features/pricing/transgourmet/searchTerms.ts",
     "src/features/pricing/transgourmet/types.ts"
   ]
 }

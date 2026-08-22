@@ -17,7 +17,7 @@
       "destination": "https://llm-api2.b.onprem.ai/:path*"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ]
