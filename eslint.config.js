@@ -18,5 +18,9 @@ export default defineConfig([
     languageOptions: {
       globals: globals.browser,
     },
+    rules: {
+      // Thin spaces are used deliberately for typography inside template strings.
+      'no-irregular-whitespace': ['error', { skipTemplates: true }],
+    },
   },
 ])

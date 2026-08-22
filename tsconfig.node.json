@@ -19,5 +19,11 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["vite.config.ts", "src/server", "src/lib/turbostream.ts", "src/lib/transgourmetArticles.ts", "src/types/transgourmet.ts"]
+  "include": [
+    "vite.config.ts",
+    "src/server",
+    "src/features/pricing/transgourmet/turbostream.ts",
+    "src/features/pricing/transgourmet/articles.ts",
+    "src/features/pricing/transgourmet/types.ts"
+  ]
 }

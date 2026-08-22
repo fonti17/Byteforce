@@ -1,3 +1,4 @@
+import { fileURLToPath, URL } from 'node:url'
 import {defineConfig} from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
@@ -20,7 +21,7 @@ export default defineConfig({
                 type: 'module',
             },
             // copied verbatim into dist/ and precached
-            includeAssets: ['favicon.ico', 'icons.svg', 'images/apple-touch-icon.png'],
+            includeAssets: ['favicon.ico', 'images/apple-touch-icon.png'],
             // generates 'manifest.webmanifest' file on build
             manifest: {
                 id: '/',
@@ -73,6 +74,11 @@ export default defineConfig({
             }
         })
     ],
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+    },
+  },
   server: {
     proxy: {
       '/api/stoney': {

@@ -1,0 +1,54 @@
+@import "@heroui/styles";
+
+/* Tailwind's automatic source detection is anchored inside node_modules because
+   the `@import "tailwindcss"` lives in @heroui/styles — declare our sources. */
+@source "../index.html";
+@source "./**/*.{ts,tsx}";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --color-primary: #ed1b2f;
+  --color-primary-foreground: #ffffff;
+  --color-accent: #ed1b2f;
+  --color-accent-foreground: #ffffff;
+}
+
+/* Transgourmet / Prodega Design System Tokens */
+@layer theme {
+  :root,
+  .light,
+  [data-theme="light"],
+  [data-theme="default"],
+  .dark,
+  [data-theme="dark"] {
+    --accent: #ed1b2f;
+    --accent-foreground: #ffffff;
+    --primary: #ed1b2f;
+    --primary-foreground: #ffffff;
+    --primary-light: #fee2e2;
+    --primary-dark: #cc1122;
+    --secondary: #666666;
+    --secondary-foreground: #ffffff;
+    --border: #e5e5e5;
+    --input: #e5e5e5;
+    --ring: #ed1b2f;
+    --background: #f8f8f8;
+    --foreground: #111111;
+  }
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: #ffffff;
+  color: #111111;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

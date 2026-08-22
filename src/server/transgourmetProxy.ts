@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
-import { parseCatalogHtml } from '../lib/transgourmetArticles.ts';
-import type { CatalogSearchResponse } from '../types/transgourmet.ts';
+import { parseCatalogHtml } from '../features/pricing/transgourmet/articles.ts';
+import type { CatalogSearchResponse } from '../features/pricing/transgourmet/types.ts';
 
 /**
  * Dev-server access to the Transgourmet webshop catalog.
