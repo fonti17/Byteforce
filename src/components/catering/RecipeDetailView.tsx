@@ -90,7 +90,12 @@ export function RecipeDetailView({
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
-        <Button variant="ghost" size="sm" className="-ml-3 w-fit text-muted" onPress={onBack}>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="-ml-3 w-fit text-primary hover:underline hover:bg-transparent p-0 text-sm font-medium"
+          onPress={onBack}
+        >
           <IconChevronLeft />
           {t.back}
         </Button>
@@ -103,7 +108,10 @@ export function RecipeDetailView({
       </div>
 
       {notice ? (
-        <Alert status={notice.isError ? 'danger' : 'success'}>
+        <Alert
+          status={notice.isError ? 'danger' : 'success'}
+          className={`rounded-lg ${notice.isError ? 'border-red-200 bg-red-50 text-red-900' : 'border-emerald-200 bg-emerald-50 text-emerald-900'}`}
+        >
           <Alert.Indicator />
           <Alert.Content>
             <Alert.Description>{notice.text}</Alert.Description>
@@ -121,21 +129,37 @@ export function RecipeDetailView({
       )}
 
       <div className="flex flex-wrap gap-2">
-        <Button variant="outline" onPress={() => setIsEditing((editing) => !editing)}>
+        <Button
+          variant="outline"
+          className="border-neutral-300 text-neutral-800 hover:border-primary hover:text-primary rounded text-xs font-medium"
+          onPress={() => setIsEditing((editing) => !editing)}
+        >
           {isEditing ? t.recipeCancel : t.recipeEdit}
         </Button>
-        <Button variant="outline" onPress={onAddNew}>
+        <Button
+          variant="outline"
+          className="border-neutral-300 text-neutral-800 hover:border-primary hover:text-primary rounded text-xs font-medium"
+          onPress={onAddNew}
+        >
           {t.recipeNew}
         </Button>
-        <Button variant="outline" onPress={download}>
+        <Button
+          variant="outline"
+          className="border-neutral-300 text-neutral-800 hover:border-primary hover:text-primary rounded text-xs font-medium"
+          onPress={download}
+        >
           {t.recipeDownload}
         </Button>
-        <Button variant="outline" onPress={() => fileInputRef.current?.click()}>
+        <Button
+          variant="outline"
+          className="border-neutral-300 text-neutral-800 hover:border-primary hover:text-primary rounded text-xs font-medium"
+          onPress={() => fileInputRef.current?.click()}
+        >
           {t.recipeUpload}
         </Button>
         <Button
           variant="danger-soft"
-          className="w-fit"
+          className="border-neutral-300 text-neutral-800 hover:border-primary hover:text-primary rounded text-xs font-medium"
           onPress={() => setIsConfirmingDelete(true)}
         >
           {t.recipeDelete}
@@ -186,8 +210,8 @@ export function RecipeDetailView({
       </AlertDialog>
 
       {isEditing ? (
-        <Card>
-          <Card.Content>
+        <Card className="border border-neutral-200 bg-white rounded-lg shadow-xs p-4">
+          <Card.Content className="p-0">
             <RecipeEditor
               t={t}
               recipe={recipe}
@@ -201,12 +225,12 @@ export function RecipeDetailView({
           {recipe.course || recipe.diet.length > 0 ? (
             <div className="flex flex-wrap gap-1.5">
               {recipe.course ? (
-                <Chip variant="soft" size="sm">
+                <Chip variant="soft" size="sm" className="bg-neutral-200 text-neutral-800 font-semibold rounded text-xs">
                   <Chip.Label>{t.course[recipe.course]}</Chip.Label>
                 </Chip>
               ) : null}
               {recipe.diet.map((diet) => (
-                <Chip key={diet} variant="soft" size="sm" color="success">
+                <Chip key={diet} variant="soft" size="sm" color="success" className="bg-emerald-100 text-emerald-800 font-semibold rounded text-xs">
                   <Chip.Label>{t.diet[diet]}</Chip.Label>
                 </Chip>
               ))}
@@ -214,29 +238,29 @@ export function RecipeDetailView({
           ) : null}
 
           {recipe.description ? (
-            <Typography.Paragraph className="text-muted">{recipe.description}</Typography.Paragraph>
+            <Typography.Paragraph className="text-sm text-neutral-600">{recipe.description}</Typography.Paragraph>
           ) : null}
 
           <section className="flex flex-col gap-2">
-            <div className="flex items-baseline justify-between gap-3">
-              <Typography.Heading level={2} className="text-sm font-semibold text-muted">
+            <div className="flex items-center justify-between gap-3">
+              <Typography.Heading level={2} className="text-base font-bold text-neutral-900">
                 {t.recipeIngredientsLabel}
               </Typography.Heading>
               {scaled ? (
-                <span className="text-xs text-muted">
+                <span className="text-xs font-semibold text-primary">
                   {t.recipeScaledTo(participantCount ?? 0)}
                 </span>
               ) : null}
             </div>
-            <Card className="gap-0 overflow-hidden p-0">
+            <Card className="gap-0 overflow-hidden p-0 bg-white border border-neutral-200 rounded-lg shadow-xs divide-y divide-neutral-100">
               <ul>
                 {ingredients.map((entry, index) => (
                   <li
                     key={`${entry.ingredient}-${index}`}
-                    className="flex items-center gap-3 border-b border-separator px-4 py-3 last:border-b-0"
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-neutral-50 transition-colors"
                   >
-                    <span className="min-w-0 flex-1 truncate text-sm">{entry.ingredient}</span>
-                    <span className="shrink-0 text-sm font-medium tabular-nums">
+                    <span className="min-w-0 flex-1 truncate text-sm font-medium text-neutral-900">{entry.ingredient}</span>
+                    <span className="shrink-0 text-sm font-semibold tabular-nums text-neutral-900">
                       {formatQuantity(entry.quantity, entry.unit, t, language)}
                     </span>
                   </li>
@@ -247,18 +271,27 @@ export function RecipeDetailView({
 
           {recipe.steps.length > 0 ? (
             <section className="flex flex-col gap-2">
-              <Typography.Heading level={2} className="text-sm font-semibold text-muted">
+              <Typography.Heading level={2} className="text-base font-bold text-neutral-900">
                 {t.recipeSteps}
               </Typography.Heading>
-              <Card className="p-4">
-                <ol className="flex list-decimal flex-col gap-2 pl-4 text-sm">
+              <Card className="p-4 bg-white border border-neutral-200 rounded-lg shadow-xs">
+                <ol className="flex list-decimal flex-col gap-2.5 pl-4 text-sm text-neutral-800">
                   {recipe.steps.map((step, index) => (
-                    <li key={index}>{step}</li>
+                    <li key={index} className="leading-relaxed">{step}</li>
                   ))}
                 </ol>
               </Card>
             </section>
           ) : null}
+
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-fit text-red-600 hover:bg-red-50 p-0 text-xs font-medium"
+            onPress={onDelete}
+          >
+            {t.recipeDelete}
+          </Button>
         </>
       )}
     </div>

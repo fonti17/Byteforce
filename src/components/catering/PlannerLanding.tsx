@@ -12,6 +12,7 @@ import {
 import { isRecipeComplete } from '../../services/recipeService';
 import type { StoredRecipe } from '../../types/recipe';
 import { recipeName, recipeSummary } from './fields';
+import { ProdegaLogo } from './ProdegaLogo';
 import type { Language, Strings } from './strings';
 
 /**
@@ -67,27 +68,31 @@ export function PlannerLanding({
   const hiddenCount = recipes.length - visible.length;
 
   return (
-    <div className="flex flex-col gap-8">
-      <div className="flex flex-col gap-2">
-        <Typography.Heading level={1} className="text-3xl font-bold tracking-tight text-balance">
+    <div className="flex flex-col gap-6">
+      {/* Prodega Easy Promotional Banner Style */}
+      <div className="flex flex-col justify-center overflow-hidden rounded-lg bg-[#ed1b2f] p-5 text-white shadow-xs sm:p-6">
+        <Typography.Heading level={1} className="text-xl sm:text-2xl font-bold tracking-tight text-white">
           {t.landingTitle}
         </Typography.Heading>
-        <Typography.Paragraph className="text-muted">{t.landingSubtitle}</Typography.Paragraph>
+        <Typography.Paragraph className="text-white/90 text-sm mt-1">
+          {t.landingSubtitle}
+        </Typography.Paragraph>
       </div>
 
-      <Card>
-        <Card.Content>
+      <Card className="border border-neutral-200 bg-white rounded-lg shadow-xs overflow-hidden">
+        <Card.Content className="p-4 sm:p-6">
           <TextField
             aria-label={t.inputLabel}
             variant="secondary"
             value={message}
             onChange={setMessage}
             isDisabled={isAnalysing}
+            className="w-full"
           >
             <TextArea
               placeholder={t.inputPlaceholder}
               rows={5}
-              className="resize-none"
+              className="resize-none rounded-md border border-neutral-300 p-3 text-sm focus:border-primary focus:ring-1 focus:ring-primary w-full outline-none"
               onKeyDown={(event) => {
                 if (event.key === 'Enter' && (event.metaKey || event.ctrlKey) && canSubmit) {
                   onAnalyse(message);
@@ -96,48 +101,61 @@ export function PlannerLanding({
             />
           </TextField>
         </Card.Content>
-        <Card.Footer className="justify-between gap-3">
+        <Card.Footer className="justify-between gap-3 bg-neutral-50 px-4 py-3 border-t border-neutral-100 flex flex-wrap">
           <Button
             variant="ghost"
             size="sm"
-            className="text-accent"
+            className="text-primary hover:underline hover:bg-transparent p-0 text-sm font-medium"
             isDisabled={isAnalysing}
             onPress={() => setMessage(EXAMPLE_REQUEST[language])}
           >
             {t.insertExample}
           </Button>
-          <Button isDisabled={!canSubmit} onPress={() => onAnalyse(message)}>
+          <Button
+            isDisabled={!canSubmit}
+            onPress={() => onAnalyse(message)}
+            className="bg-primary text-white hover:bg-primary/90 rounded px-5 py-2 text-sm font-medium transition-colors shadow-xs disabled:opacity-50"
+          >
             {isAnalysing ? <Spinner size="sm" /> : null}
             {isAnalysing ? t.analysing : t.analyse}
           </Button>
         </Card.Footer>
       </Card>
 
-      <section className="flex flex-col gap-3">
-        <div className="flex items-baseline justify-between gap-3">
-          <Typography.Heading level={2} className="text-sm font-semibold text-muted">
+      <section className="flex flex-col gap-3 mt-2">
+        <div className="flex items-center justify-between gap-3">
+          <Typography.Heading level={2} className="text-base font-bold text-neutral-900">
             {t.recipesTitle}
           </Typography.Heading>
-          <Button variant="ghost" size="sm" className="-mr-3 text-accent" onPress={onOpenRecipes}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-primary hover:underline p-0 text-sm font-medium"
+            onPress={onOpenRecipes}
+          >
             {recipes.length > 0 ? t.recipeAllRecipes : t.recipeNew}
           </Button>
         </div>
 
         {visible.length === 0 ? (
-          <Card className="flex flex-col items-start gap-3 p-4">
-            <Typography.Paragraph className="text-sm text-muted">
+          <Card className="flex flex-col items-start gap-3 p-5 bg-white border border-neutral-200 rounded-lg">
+            <Typography.Paragraph className="text-sm text-neutral-500">
               {t.recipeLandingEmpty}
             </Typography.Paragraph>
-            <Button size="sm" onPress={onOpenRecipes}>
+            <Button
+              size="sm"
+              onPress={onOpenRecipes}
+              className="bg-primary text-white hover:bg-primary/90 rounded px-3 py-1.5 text-sm font-medium"
+            >
               {t.recipeNew}
             </Button>
           </Card>
         ) : (
-          <Card className="gap-0 overflow-hidden p-0">
+          <Card className="gap-0 overflow-hidden p-0 bg-white border border-neutral-200 rounded-lg shadow-xs divide-y divide-neutral-100">
             {visible.map((record) => (
               <div
                 key={record.id}
-                className="flex items-center gap-1 border-b border-separator pr-2 last:border-b-0"
+                className="flex items-center gap-2 p-3 hover:bg-neutral-50 transition-colors"
               >
                 <button
                   type="button"
@@ -168,7 +186,7 @@ export function PlannerLanding({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="shrink-0"
+                  className="shrink-0 border-neutral-300 rounded text-xs font-medium hover:border-primary hover:text-primary"
                   onPress={() => onOpenRecipe(record.id)}
                 >
                   {t.recipeDetails}
@@ -207,9 +225,9 @@ export function PlannerLanding({
         ) : null}
       </section>
 
-      <Typography.Paragraph size="sm" className="text-muted">
+      <div className="text-center text-xs text-neutral-400 mt-4 border-t border-neutral-200 pt-4">
         {t.footnote}
-      </Typography.Paragraph>
+      </div>
     </div>
   );
 }

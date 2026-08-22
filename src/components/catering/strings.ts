@@ -21,6 +21,8 @@ export const strings = {
     briefSubtitle: (found: number, missing: number) =>
       `${found} Angaben erkannt, ${missing} fehlen noch.`,
     briefComplete: 'Alle Pflichtangaben sind vorhanden.',
+    originalRequestLabel: 'Ursprüngliche Anfrage',
+    editOriginalRequest: 'Anfrage bearbeiten & neu analysieren',
     missing: 'fehlt',
     recognised: 'erkannt',
     answerQuestions: (count: number) =>
@@ -48,6 +50,9 @@ export const strings = {
     labelParticipants: 'Personen',
     labelMeal: 'Mahlzeit',
     labelBudget: 'Budget',
+    labelContext: 'Zusätzlicher Kontext & Wünsche',
+    contextPlaceholder: 'z.B. Vegetarier, Unverträglichkeiten, Vorlieben, Buffet-Wünsche …',
+    saveContext: 'Kontext speichern',
     labelAmount: 'Betrag',
     labelCurrency: 'Währung',
     labelYearOptional: 'Jahr optional — ohne Angabe bleibt es null.',
@@ -220,6 +225,8 @@ export const strings = {
     briefSubtitle: (found: number, missing: number) =>
       `${found} details found, ${missing} still missing.`,
     briefComplete: 'Every required detail is present.',
+    originalRequestLabel: 'Original Request',
+    editOriginalRequest: 'Edit request & re-analyse',
     missing: 'missing',
     recognised: 'found',
     answerQuestions: (count: number) =>
@@ -246,6 +253,9 @@ export const strings = {
     labelParticipants: 'Guests',
     labelMeal: 'Meal',
     labelBudget: 'Budget',
+    labelContext: 'Additional Context & Preferences',
+    contextPlaceholder: 'e.g. Vegetarian guests, allergies, preferences, buffet requirements …',
+    saveContext: 'Save context',
     labelAmount: 'Amount',
     labelCurrency: 'Currency',
     labelYearOptional: 'Year is optional — left out it stays null.',

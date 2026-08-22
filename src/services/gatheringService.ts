@@ -390,7 +390,7 @@ function buildSystemPrompt(): string {
     '- "Firmenessen" and "zum Essen kommen" do not imply meal="dinner".',
     '- "am Abend essen" and "Abendessen" map to meal="dinner".',
     '- "Apéro" and "Aperitif" map to meal="apero". "Buffet" maps to meal="buffet".',
-    '- Put dietary requirements, preferences, drinks, cuisine, and other constraints in context.',
+    '- Put only additional dietary requirements, intolerances, cuisine styles, drink preferences, and free-form constraints in context. Do NOT repeat or include values that are already captured by the dedicated fields (eventType, date, participantCount, meal, budget).',
     '- Report ambiguous interpretations in uncertain as {"field":"field.path","reason":"..."}.',
     '- Split "2500 CHF" into budget.amount=2500 and budget.currency="CHF".',
     '- Do not return status, missing fields, questions, markdown, or prose.',
