@@ -28,6 +28,7 @@ export const strings = {
     toResult: 'Zum Ergebnis',
     offlineNotice:
       'Das Sprachmodell war nicht erreichbar — gelesen wurde mit der lokalen Erkennung.',
+    uncertainTitle: 'Bitte prüfen Sie diese unklaren Angaben:',
 
     questionOf: (current: number, total: number) => `Frage ${current}/${total}`,
     freeTextHint: 'Oder tippe eine eigene Antwort.',
@@ -61,6 +62,8 @@ export const strings = {
       breakfast: 'Frühstück',
       lunch: 'Mittagessen',
       dinner: 'Abendessen',
+      apero: 'Apéro',
+      buffet: 'Buffet',
       other: 'Anderes',
     },
 
@@ -82,6 +85,7 @@ export const strings = {
     menuSection: 'Menü',
     shoppingSection: 'Einkaufsliste',
     budgetSection: 'Budget',
+    reasoningSection: 'Begründung',
     estimatedTotal: 'Geschätzte Kosten',
     itemCount: (count: number) =>
       count === 1 ? '1 Position' : `${count} Positionen`,
@@ -199,6 +203,7 @@ export const strings = {
       count === 1 ? 'Answer 1 question' : `Answer ${count} questions`,
     toResult: 'See the result',
     offlineNotice: 'The language model was unreachable — parsed with local extraction instead.',
+    uncertainTitle: 'Please review these ambiguous details:',
 
     questionOf: (current: number, total: number) => `Question ${current}/${total}`,
     freeTextHint: 'Or type your own answer.',
@@ -232,6 +237,8 @@ export const strings = {
       breakfast: 'Breakfast',
       lunch: 'Lunch',
       dinner: 'Dinner',
+      apero: 'Aperitif',
+      buffet: 'Buffet',
       other: 'Other',
     },
 
@@ -253,6 +260,7 @@ export const strings = {
     menuSection: 'Menu',
     shoppingSection: 'Shopping list',
     budgetSection: 'Budget',
+    reasoningSection: 'Reasoning',
     estimatedTotal: 'Estimated cost',
     itemCount: (count: number) => (count === 1 ? '1 item' : `${count} items`),
     uncategorised: 'Other ingredients',

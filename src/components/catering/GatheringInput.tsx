@@ -2,7 +2,6 @@ import { useState } from 'react';
 import {
   Button,
   Card,
-  DateField,
   IconChevronLeft,
   Input,
   NumberField,
@@ -12,7 +11,6 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   Typography,
-  type DateValue,
 } from '@heroui/react';
 import type { GatheringData, GatheringField, GatheringUpdates } from '../../types/gathering';
 import {
@@ -253,30 +251,29 @@ interface ControlProps {
 }
 
 function DateControl({ t, isDisabled, onAnswer }: ControlProps) {
-  const [value, setValue] = useState<DateValue | null>(null);
+  // The native date input provides a real calendar picker while keeping the
+  // date in the browser's stable ISO format (YYYY-MM-DD).
+  const [value, setValue] = useState('');
 
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2">
-        <DateField
+        <input
+          type="date"
           aria-label={t.labelDate}
           value={value}
-          onChange={setValue}
-          isDisabled={isDisabled}
-        >
-          <DateField.Group variant="secondary" className="w-fit min-w-40">
-            <DateField.Input>
-              {(segment) => <DateField.Segment segment={segment} />}
-            </DateField.Input>
-          </DateField.Group>
-        </DateField>
+          onChange={(event) => setValue(event.target.value)}
+          disabled={isDisabled}
+          className="min-h-10 rounded-lg border border-border bg-surface-secondary px-3 text-sm text-foreground outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
+        />
         <Button
-          isDisabled={isDisabled || value === null}
+          isDisabled={isDisabled || value === ''}
           onPress={() => {
             if (!value) return;
+            const [year, month, day] = value.split('-').map(Number);
             onAnswer(
-              { 'date.day': value.day, 'date.month': value.month, 'date.year': value.year },
-              `${value.day}.${value.month}.${value.year}`
+              { 'date.day': day, 'date.month': month, 'date.year': year },
+              `${day}.${month}.${year}`
             );
           }}
         >

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { Button } from '@heroui/react';
 import { useCateringPlan } from '../../hooks/useCateringPlan';
 import { useGathering, type PlannerStep } from '../../hooks/useGathering';
@@ -25,16 +25,38 @@ export function CateringPlanner() {
   const [language, setLanguage] = useState<Language>('de');
   const t = strings[language];
 
-  const options = useMemo(() => ({ language }), [language]);
-  const gathering = useGathering(options);
-  const { analyse, apply, data, missingFields, result, reset, setStep, source, step } = gathering;
+  const gatheringOptions = useMemo(
+    () => ({ language, model: 'apertus-8b', temperature: 0, maxTokens: 250 }),
+    [language]
+  );
+  const gathering = useGathering(gatheringOptions);
+  const {
+    analyse,
+    apply,
+    data,
+    missingFields,
+    originalRequest,
+    result,
+    reset,
+    setStep,
+    source,
+    step,
+    uncertain,
+  } = gathering;
 
-  const recipes = useRecipes(options);
+  const recipeOptions = useMemo(() => ({ language }), [language]);
+  const recipes = useRecipes(recipeOptions);
   const { clearSelection, selectedRecipes } = recipes;
 
   // Recipes are part of the plan input, so a changed selection re-runs part 2.
   const planOptions = useMemo(
-    () => ({ language, recipes: selectedRecipes }),
+    () => ({
+      language,
+      model: 'apertus-70b',
+      temperature: 0.2,
+      maxTokens: 1800,
+      recipes: selectedRecipes,
+    }),
     [language, selectedRecipes]
   );
 
@@ -74,6 +96,7 @@ export function CateringPlanner() {
   const {
     plan,
     isPlanning,
+    streamedText,
     source: planSource,
     error: planError,
     generate: generatePlan,
@@ -92,17 +115,10 @@ export function CateringPlanner() {
     (payload: GatheringResult) => {
       plannedForRef.current = planKey;
       resetPlan();
-      void generatePlan(payload);
+      void generatePlan({ gatheringState: payload, originalRequest });
     },
-    [generatePlan, planKey, resetPlan]
+    [generatePlan, originalRequest, planKey, resetPlan]
   );
-
-  // Part 2 starts as soon as part 1 is complete, so the proposal is usually
-  // ready by the time the result view is left.
-  useEffect(() => {
-    if (!result || plannedForRef.current === planKey) return;
-    runPlan(result);
-  }, [planKey, result, runPlan]);
 
   const handleRestart = useCallback(() => {
     plannedForRef.current = null;
@@ -210,7 +226,9 @@ export function CateringPlanner() {
             data={data}
             openQuestionCount={openQuestionList.length}
             usedLocalExtraction={source === 'local'}
-            onBack={() => setStep('landing')}
+            uncertain={uncertain}
+            // Returning to the prompt starts a completely new session.
+            onBack={handleRestart}
             onContinue={() => startQuestions(openQuestionList)}
             onEdit={(question) => startQuestions([question])}
           />
@@ -272,7 +290,10 @@ export function CateringPlanner() {
             t={t}
             result={result}
             isPlanning={isPlanning}
-            onContinue={() => setStep('plan')}
+            onContinue={() => {
+              runPlan(result);
+              setStep('plan');
+            }}
             onBack={() => setStep('brief')}
             onRestart={handleRestart}
           />
@@ -285,6 +306,7 @@ export function CateringPlanner() {
             result={result}
             plan={plan}
             isPlanning={isPlanning}
+            streamedText={streamedText}
             usedRecipes={selectedRecipes.length}
             usedLocalPlan={planSource === 'local'}
             error={planError}

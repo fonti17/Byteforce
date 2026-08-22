@@ -7,6 +7,7 @@ import type {
   CateringPlan,
   CateringPlanBudget,
   CateringPlanOptions,
+  CateringPlanInput,
   CateringPlanTurn,
   ShoppingListEntry,
 } from '../types/cateringPlan';
@@ -32,6 +33,7 @@ function buildSystemPrompt(
   return [
     'You are a professional catering planner.',
     'The information-gathering phase is complete. Use the supplied state as authoritative.',
+    'Use the original request and context to preserve useful preferences and constraints that are not represented by fixed fields.',
     '',
     'Your task:',
     hasRecipes
@@ -40,6 +42,8 @@ function buildSystemPrompt(
     '2. Derive all required ingredients from that menu.',
     '3. Calculate realistic total purchase quantities for the complete participant count.',
     '4. Keep the proposal within the stated budget.',
+    '5. Explain your reasoning: mention how the budget was used, which preferences or constraints affected the choices, and any requested items that could not be fulfilled exactly.',
+    '6. If a request conflicts with the budget, clearly describe the compromise and the practical alternative chosen.',
     '',
     ...(hasRecipes
       ? [
@@ -132,6 +136,7 @@ export function parseCateringPlan(
     menu: { name: asText(menuRecord.name) ?? '', items },
     shoppingList,
     budget: parseBudget(parsed.budget, fallbackCurrency),
+    reasoning: asText(parsed.reasoning) ?? '',
   };
 }
 
@@ -154,35 +159,56 @@ function describeRecipes(recipes: Recipe[], participantCount: number, language: 
   ].join('\n\n');
 }
 
+function resolvePlanInput(
+  input: GatheringData | GatheringResult | CateringPlanInput
+): { gatheringState: GatheringData | GatheringResult; originalRequest: string | null } {
+  if ('gatheringState' in input) {
+    return { gatheringState: input.gatheringState, originalRequest: input.originalRequest ?? null };
+  }
+  return { gatheringState: input, originalRequest: null };
+}
+
+function buildPlanMessages(
+  input: GatheringData | GatheringResult | CateringPlanInput,
+  options: CateringPlanOptions
+): { role: 'user'; content: string }[] {
+  const { language, recipes = [] } = options;
+  const { gatheringState, originalRequest } = resolvePlanInput(input);
+  const participantCount = gatheringState.participantCount ?? 0;
+  return [{
+    role: 'user',
+    content: [
+      language === 'en'
+        ? 'Build a menu and the shopping list from this completed catering state:'
+        : 'Erstelle aus diesem abgeschlossenen Catering-State ein Menü und die Einkaufsliste:',
+      JSON.stringify(gatheringState, null, 2),
+      ...(originalRequest
+        ? [`${language === 'en' ? 'Original request:' : 'Original-Anfrage:'}\n${originalRequest}`]
+        : []),
+      ...(recipes.length > 0 && participantCount > 0
+        ? [describeRecipes(recipes, participantCount, language)]
+        : []),
+    ].join('\n\n'),
+  }];
+}
+
+function buildPlanRequestOptions(options: CateringPlanOptions) {
+  const { language, recipes: _recipes, ...requestOptions } = options;
+  return {
+    ...requestOptions,
+    model: options.model ?? 'apertus-70b',
+    temperature: options.temperature ?? 0.2,
+    maxTokens: options.maxTokens ?? 1800,
+    systemPrompt: buildSystemPrompt(language, (_recipes ?? []).length > 0),
+  };
+}
+
 export const cateringPlanService = {
   async create(
-    gatheringState: GatheringData | GatheringResult,
+    input: GatheringData | GatheringResult | CateringPlanInput,
     options: CateringPlanOptions = {}
   ): Promise<LLMResponse> {
-    const { language, recipes = [], ...requestOptions } = options;
-    const participantCount = gatheringState.participantCount ?? 0;
-
-    return llmService.chat(
-      [{
-        role: 'user',
-        content: [
-          language === 'en'
-            ? 'Build a menu and the shopping list from this completed catering state:'
-            : 'Erstelle aus diesem abgeschlossenen Catering-State ein Menü und die Einkaufsliste:',
-          JSON.stringify(gatheringState, null, 2),
-          ...(recipes.length > 0 && participantCount > 0
-            ? [describeRecipes(recipes, participantCount, language)]
-            : []),
-        ].join('\n\n'),
-      }],
-      {
-        ...requestOptions,
-        model: options.model ?? 'apertus-70b',
-        temperature: options.temperature ?? 0.2,
-        maxTokens: options.maxTokens ?? 1800,
-        systemPrompt: buildSystemPrompt(language, recipes.length > 0),
-      }
-    );
+    return llmService.chat(buildPlanMessages(input, options), buildPlanRequestOptions(options));
   },
 
   /**
@@ -190,17 +216,45 @@ export const cateringPlanService = {
    * are folded in afterwards, so their quantities stay the calculated ones.
    */
   async plan(
-    gatheringResult: GatheringResult,
+    input: GatheringResult | CateringPlanInput,
     options: CateringPlanOptions = {}
   ): Promise<CateringPlanTurn> {
     const recipes = options.recipes ?? [];
-    const response = await this.create(gatheringResult, options);
+    const { gatheringState } = resolvePlanInput(input);
+    const gatheringResult = gatheringState as GatheringResult;
+    const response = await this.create(input, options);
     const parsed = parseCateringPlan(response.content, gatheringResult.budget.currency, {
       requireItems: recipes.length === 0,
     });
     return {
       plan: mergeRecipesIntoPlan(parsed, recipes, gatheringResult.participantCount),
       response,
+    };
+  },
+
+  async stream(
+    input: GatheringResult | CateringPlanInput,
+    options: CateringPlanOptions = {},
+    onChunk?: (text: string) => void
+  ): Promise<CateringPlanTurn> {
+    let content = '';
+    for await (const chunk of llmService.streamChat(
+      buildPlanMessages(input, options),
+      buildPlanRequestOptions(options)
+    )) {
+      content += chunk.delta;
+      onChunk?.(content);
+    }
+
+    const recipes = options.recipes ?? [];
+    const { gatheringState } = resolvePlanInput(input);
+    const gatheringResult = gatheringState as GatheringResult;
+    const parsed = parseCateringPlan(content, gatheringResult.budget.currency, {
+      requireItems: recipes.length === 0,
+    });
+    return {
+      plan: mergeRecipesIntoPlan(parsed, recipes, gatheringResult.participantCount),
+      response: { content, model: 'apertus-70b' },
     };
   },
 };

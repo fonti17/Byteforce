@@ -29,7 +29,14 @@ const FIELDS_BY_QUESTION: Record<QuestionId, GatheringField[]> = {
 };
 
 export const EVENT_TYPE_OPTIONS: EventType[] = ['private', 'business', 'team_event', 'other'];
-export const MEAL_OPTIONS: MealType[] = ['breakfast', 'lunch', 'dinner', 'other'];
+export const MEAL_OPTIONS: MealType[] = [
+  'breakfast',
+  'lunch',
+  'dinner',
+  'apero',
+  'buffet',
+  'other',
+];
 export const CURRENCY_OPTIONS = ['CHF', 'EUR', 'USD'];
 export const PARTICIPANT_PRESETS = [10, 25, 50, 80];
 export const BUDGET_PRESETS = [1000, 2500, 6000];

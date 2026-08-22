@@ -1,3 +1,4 @@
+import type { GatheringData, GatheringResult } from './gathering';
 import type { LLMRequestOptions, LLMResponse } from './llm';
 import type { Recipe } from './recipe';
 
@@ -37,6 +38,8 @@ export interface CateringPlan {
   menu: CateringMenu;
   shoppingList: ShoppingListEntry[];
   budget: CateringPlanBudget;
+  /** Explains budget trade-offs and any unmet or adapted requests. */
+  reasoning: string;
 }
 
 export interface CateringPlanOptions extends LLMRequestOptions {
@@ -46,6 +49,11 @@ export interface CateringPlanOptions extends LLMRequestOptions {
    * the shopping list locally; the model only completes the menu around them.
    */
   recipes?: Recipe[];
+}
+
+export interface CateringPlanInput {
+  gatheringState: GatheringData | GatheringResult;
+  originalRequest?: string | null;
 }
 
 export interface CateringPlanTurn {
