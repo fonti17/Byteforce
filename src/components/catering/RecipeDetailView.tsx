@@ -1,17 +1,18 @@
 import { useRef, useState } from 'react';
 import {
   Alert,
+  AlertDialog,
   Button,
   Card,
   Chip,
-  CircleDashedIcon,
   IconChevronLeft,
-  SuccessIcon,
   Typography,
 } from '@heroui/react';
-import { scaleRecipe } from '../../services/recipeService';
+import { isRecipeComplete, scaleRecipe } from '../../services/recipeService';
 import type { Recipe, StoredRecipe } from '../../types/recipe';
 import { RecipeEditor } from './RecipeEditor';
+import { RecipeMissingValues } from './RecipeMissingValues';
+import { recipeName, recipeSummary } from './fields';
 import type { Language, Strings } from './strings';
 
 interface RecipeDetailViewProps {
@@ -20,8 +21,6 @@ interface RecipeDetailViewProps {
   record: StoredRecipe;
   /** Known once part 1 has a participant count — drives the scaling preview. */
   participantCount: number | null;
-  isSelected: boolean;
-  onToggleSelected: () => void;
   onSave: (recipe: Recipe) => void;
   onDelete: () => void;
   /** Opens the recipe screen, where a new recipe is pasted or typed. */
@@ -41,8 +40,6 @@ export function RecipeDetailView({
   language,
   record,
   participantCount,
-  isSelected,
-  onToggleSelected,
   onSave,
   onDelete,
   onAddNew,
@@ -50,13 +47,18 @@ export function RecipeDetailView({
   onBack,
 }: RecipeDetailViewProps) {
   const [isEditing, setIsEditing] = useState(false);
+  // Deleting throws away a stored recipe, so it waits for an explicit yes.
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [notice, setNotice] = useState<{ text: string; isError: boolean } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { recipe } = record;
 
-  // Preview the quantities the plan will buy, not the ones written down.
-  const scaled = participantCount ? scaleRecipe(recipe, participantCount) : null;
+  // Preview the quantities the plan will buy, not the ones written down. An
+  // unanswered serving count cannot be scaled, so the recipe is shown as written.
+  const scaled =
+    participantCount && recipe.servings !== null ? scaleRecipe(recipe, participantCount) : null;
   const ingredients = scaled ?? recipe.ingredients;
+  const isComplete = isRecipeComplete(recipe);
 
   const download = () => {
     const url = URL.createObjectURL(
@@ -93,10 +95,10 @@ export function RecipeDetailView({
           {t.back}
         </Button>
         <Typography.Heading level={1} className="text-2xl font-bold tracking-tight text-balance">
-          {recipe.name}
+          {recipeName(recipe, t)}
         </Typography.Heading>
         <Typography.Paragraph className="text-muted">
-          {`${t.recipeServings(recipe.servings)} · ${t.recipeIngredients(recipe.ingredients.length)}`}
+          {recipeSummary(recipe, t)}
         </Typography.Paragraph>
       </div>
 
@@ -109,18 +111,14 @@ export function RecipeDetailView({
         </Alert>
       ) : null}
 
-      <Button
-        variant={isSelected ? 'primary' : 'outline'}
-        fullWidth
-        onPress={onToggleSelected}
-      >
-        {isSelected ? (
-          <SuccessIcon className="size-4" />
-        ) : (
-          <CircleDashedIcon className="size-4" />
-        )}
-        {isSelected ? t.recipeInUse : t.recipeUse}
-      </Button>
+      {isComplete ? null : (
+        <RecipeMissingValues
+          t={t}
+          recipe={recipe}
+          onAnswer={(patch) => onSave({ ...recipe, ...patch })}
+          onEdit={() => setIsEditing(true)}
+        />
+      )}
 
       <div className="flex flex-wrap gap-2">
         <Button variant="outline" onPress={() => setIsEditing((editing) => !editing)}>
@@ -135,6 +133,13 @@ export function RecipeDetailView({
         <Button variant="outline" onPress={() => fileInputRef.current?.click()}>
           {t.recipeUpload}
         </Button>
+        <Button
+          variant="danger-soft"
+          className="w-fit"
+          onPress={() => setIsConfirmingDelete(true)}
+        >
+          {t.recipeDelete}
+        </Button>
         <input
           ref={fileInputRef}
           type="file"
@@ -147,6 +152,38 @@ export function RecipeDetailView({
           }}
         />
       </div>
+
+      <AlertDialog isOpen={isConfirmingDelete} onOpenChange={setIsConfirmingDelete}>
+        <AlertDialog.Backdrop>
+          <AlertDialog.Container>
+            <AlertDialog.Dialog>
+              <AlertDialog.Header>
+                <AlertDialog.Icon status="danger" />
+                <AlertDialog.Heading>{t.recipeDeleteTitle}</AlertDialog.Heading>
+              </AlertDialog.Header>
+              <AlertDialog.Body>
+                <Typography.Paragraph className="text-muted">
+                  {t.recipeDeleteBody(recipeName(recipe, t))}
+                </Typography.Paragraph>
+              </AlertDialog.Body>
+              <AlertDialog.Footer>
+                <Button variant="outline" onPress={() => setIsConfirmingDelete(false)}>
+                  {t.recipeCancel}
+                </Button>
+                <Button
+                  variant="danger"
+                  onPress={() => {
+                    setIsConfirmingDelete(false);
+                    onDelete();
+                  }}
+                >
+                  {t.recipeDeleteConfirm}
+                </Button>
+              </AlertDialog.Footer>
+            </AlertDialog.Dialog>
+          </AlertDialog.Container>
+        </AlertDialog.Backdrop>
+      </AlertDialog>
 
       {isEditing ? (
         <Card>
@@ -222,10 +259,6 @@ export function RecipeDetailView({
               </Card>
             </section>
           ) : null}
-
-          <Button variant="ghost" size="sm" className="w-fit text-muted" onPress={onDelete}>
-            {t.recipeDelete}
-          </Button>
         </>
       )}
     </div>

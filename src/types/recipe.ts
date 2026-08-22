@@ -32,13 +32,24 @@ export interface RecipeIngredient {
 export interface Recipe {
   name: string;
   description: string | null;
-  servings: number;
+  /**
+   * `null` while the source did not state it. Nothing guesses a number in its
+   * place — the app asks, the same way part 1 asks for a missing answer.
+   */
+  servings: number | null;
   course: RecipeCourse | null;
   diet: RecipeDiet[];
   ingredients: RecipeIngredient[];
   steps: string[];
   source: string | null;
 }
+
+/**
+ * Required properties of `config/recipeConfig.json` that can still be open on a
+ * freshly read recipe, so the app can ask for them one by one.
+ */
+export const RECIPE_REQUIRED_FIELDS = ['name', 'servings', 'ingredients'] as const;
+export type RecipeField = (typeof RECIPE_REQUIRED_FIELDS)[number];
 
 /** Storage envelope. The metadata is local bookkeeping, not part of the schema. */
 export interface StoredRecipe {

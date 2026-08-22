@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { recipeStore } from '../lib/recipeStore';
 import {
   extractRecipeLocally,
+  isRecipeComplete,
   parseRecipe,
   recipeService,
   toStoredRecipe,
@@ -60,6 +61,11 @@ export function useRecipes(options: RecipeOptions = {}) {
   const upsert = useCallback(async (record: StoredRecipe): Promise<StoredRecipe> => {
     await recipeStore.put(record);
     setRecipes((current) => [record, ...current.filter((entry) => entry.id !== record.id)]);
+    // An edit that reopens a required value — an emptied serving count — takes
+    // the recipe back out of the event, because it can no longer be scaled.
+    if (!isRecipeComplete(record.recipe)) {
+      setSelectedIds((current) => current.filter((entry) => entry !== record.id));
+    }
     return record;
   }, []);
 
@@ -106,11 +112,21 @@ export function useRecipes(options: RecipeOptions = {}) {
     setSelectedIds((current) => current.filter((entry) => entry !== id));
   }, []);
 
-  const toggleSelected = useCallback((id: string): void => {
-    setSelectedIds((current) =>
-      current.includes(id) ? current.filter((entry) => entry !== id) : [...current, id]
-    );
-  }, []);
+  /**
+   * Picks a recipe for the event. A recipe with an open required value stays
+   * unselected — the app asks for the missing entry first, rather than scaling
+   * the quantities off a guessed serving count.
+   */
+  const toggleSelected = useCallback(
+    (id: string): void => {
+      setSelectedIds((current) => {
+        if (current.includes(id)) return current.filter((entry) => entry !== id);
+        const record = recipes.find((entry) => entry.id === id);
+        return record && isRecipeComplete(record.recipe) ? [...current, id] : current;
+      });
+    },
+    [recipes]
+  );
 
   const clearSelection = useCallback(() => setSelectedIds([]), []);
 
