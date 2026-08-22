@@ -27,6 +27,7 @@ const endpoint = import.meta.env.VITE_PRICE_SERVICE_ENDPOINT ?? '/api/prodega/pr
 
 class PriceService {
   async enrich(plan: CateringPlan): Promise<PricedCateringPlan> {
+    const startedAt = performance.now();
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -42,6 +43,10 @@ class PriceService {
     if (!response.ok) {
       throw new Error(`PRODEGA price service failed with HTTP ${response.status}`);
     }
+
+    console.info(
+      `[price-service] ${endpoint} responded in ${Math.round(performance.now() - startedAt)} ms`
+    );
 
     const payload = (await response.json()) as PriceApiResponse;
     if (!Array.isArray(payload.ingredients) || payload.ingredients.length !== plan.shoppingList.length) {

@@ -257,26 +257,8 @@ export function CateringPlanView({
                   {t.incompletePricing}
                 </Typography.Paragraph>
               ) : null}
-              {plan.budget.note ? (
-                <Typography.Paragraph className="text-sm text-muted">
-                  {plan.budget.note}
-                </Typography.Paragraph>
-              ) : null}
             </Card>
           </section>
-
-          {plan.reasoning ? (
-            <section className="flex flex-col gap-2">
-              <Typography.Heading level={2} className="text-sm font-semibold text-muted">
-                {t.reasoningSection}
-              </Typography.Heading>
-              <Card className="p-4">
-                <Typography.Paragraph className="whitespace-pre-line text-sm text-muted">
-                  {plan.reasoning}
-                </Typography.Paragraph>
-              </Card>
-            </section>
-          ) : null}
         </>
       ) : null}
 

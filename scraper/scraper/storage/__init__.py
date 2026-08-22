@@ -10,6 +10,7 @@ from scraper.storage.path_jail import (
     sanitize_csv_cell,
 )
 from scraper.storage.atomic import atomic_write_json, atomic_save_json
+from scraper.storage.product_store import ProductStore
 
 __all__ = [
     "resolve_safe_export_path",
@@ -19,4 +20,5 @@ __all__ = [
     "sanitize_csv_cell",
     "atomic_write_json",
     "atomic_save_json",
+    "ProductStore",
 ]

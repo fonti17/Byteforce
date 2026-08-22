@@ -281,7 +281,11 @@ def parse_article_dict(
     )
 
 
-def parse_articles_from_html(html_or_dict: Union[str, Dict[str, Any]]) -> List[ProductItem]:
+def parse_articles_from_html(
+    html_or_dict: Union[str, Dict[str, Any]],
+    category_id: Optional[int] = None,
+    category_name: Optional[str] = None,
+) -> List[ProductItem]:
     """
     Parse articles from HTML or decoded dict into a list of ProductItem models.
     """
@@ -298,7 +302,11 @@ def parse_articles_from_html(html_or_dict: Union[str, Dict[str, Any]]) -> List[P
     products: List[ProductItem] = []
     for art in raw_articles:
         try:
-            prod = parse_article_dict(art)
+            prod = parse_article_dict(
+                art,
+                category_id=category_id,
+                category_name=category_name,
+            )
             if prod:
                 products.append(prod)
         except Exception as e:

@@ -12,6 +12,14 @@ from scraper.parsers.turbostream import decode_turbostream_html, extract_search_
 logger = logging.getLogger(__name__)
 
 
+def _category_name(hwg_id: Optional[int]) -> Optional[str]:
+    """Read the display name from the project's `(name, slug)` taxonomy."""
+    if hwg_id is None:
+        return None
+    category = STANDARD_HAUPTWARENGRUPPEN.get(hwg_id)
+    return category[0] if category else None
+
+
 class CatalogExtractor:
     """Extractor for scraping paginated commodity group (HWG) catalog listings."""
 
@@ -37,7 +45,7 @@ class CatalogExtractor:
             )
             if not html or "500 Internal Server Error" in html:
                 return []
-            cat_name = STANDARD_HAUPTWARENGRUPPEN.get(hwg_id, {}).get("name") if hwg_id else None
+            cat_name = _category_name(hwg_id)
             return parse_articles_from_html(html, category_id=hwg_id, category_name=cat_name)
         except Exception as e:
             logger.warning("Error fetching catalog page %d for HWG %s: %s", page, hwg_id, e)
@@ -63,8 +71,7 @@ class CatalogExtractor:
         if target_hwg is None:
             return []
 
-        cat_info = STANDARD_HAUPTWARENGRUPPEN.get(target_hwg, {})
-        cat_name = cat_info.get("name") if isinstance(cat_info, dict) else None
+        cat_name = _category_name(target_hwg)
 
         all_articles: List[ProductItem] = []
 
@@ -121,7 +128,7 @@ class CatalogExtractor:
             if isinstance(cat_item, str) and not cat_item.isdigit():
                 results[cat_item] = items
             else:
-                cat_name = STANDARD_HAUPTWARENGRUPPEN.get(hwg, {}).get("name", f"HWG_{hwg}")
+                cat_name = _category_name(hwg) or f"HWG_{hwg}"
                 results[cat_name] = items
 
         return results

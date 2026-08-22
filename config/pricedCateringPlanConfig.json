@@ -3,7 +3,7 @@
   "title": "Priced catering plan",
   "description": "Final format after the LLM plan has been enriched with PRODEGA data.",
   "type": "object",
-  "required": ["menu", "shoppingList", "budget", "pricing"],
+  "required": ["menu", "shoppingList", "pricing"],
   "properties": {
     "menu": { "type": "object" },
     "shoppingList": {
@@ -32,7 +32,6 @@
         "additionalProperties": false
       }
     },
-    "budget": { "type": "object" },
     "pricing": {
       "type": "object",
       "required": ["source", "currency", "estimatedTotal", "isComplete"],

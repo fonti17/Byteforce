@@ -41,6 +41,7 @@ ENV/
 
 # Local scraper output
 scraper/data/*.json
+scraper/data/*.sqlite*
 
 # Agent workspace state
 .agents/
