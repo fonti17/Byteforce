@@ -20,36 +20,42 @@ import type { Language, Strings } from '@/shared/i18n/strings';
 /** Pasted in the shape people actually copy from a website or a chat message. */
 const EXAMPLE_RECIPE: Record<Language, string> = {
   de: [
-    'Kartoffelgratin',
+    'Schweizer Kartoffelsalat',
     'Für 4 Personen',
     '',
     'Zutaten:',
     '1 kg Kartoffeln',
-    '2 dl Rahm',
-    '200 g Gruyère',
-    '2 Zehen Knoblauch',
-    '1 TL Muskatnuss',
+    '250 ml Gemüsebouillon',
+    '1 Stück Zwiebeln',
+    '1 Stück Schnittlauch',
+    '40 ml Weissweinessig',
+    '50 ml Sonnenblumenöl',
+    '15 g Senf',
     '',
     'Zubereitung:',
-    'Kartoffeln in dünne Scheiben schneiden und in die geriebene Form schichten.',
-    'Rahm mit Knoblauch und Muskat würzen, darüber giessen und mit Käse bestreuen.',
-    'Bei 200 Grad 45 Minuten backen.',
+    'Kartoffeln kochen, noch warm schälen und in Scheiben schneiden.',
+    'Zwiebeln fein hacken und in warmer Gemüsebouillon mit Essig, Öl und Senf verrühren.',
+    'Die Marinade über die Kartoffeln giessen und ca. 30 Minuten ziehen lassen.',
+    'Vor dem Servieren mit frischem Schnittlauch garnieren.',
   ].join('\n'),
   en: [
-    'Potato gratin',
+    'Swiss Potato Salad',
     'Serves 4',
     '',
     'Ingredients:',
     '1 kg potatoes',
-    '2 dl cream',
-    '200 g Gruyère',
-    '2 cloves garlic',
-    '1 tsp nutmeg',
+    '250 ml vegetable broth',
+    '1 piece onion',
+    '1 piece chives',
+    '40 ml white wine vinegar',
+    '50 ml sunflower oil',
+    '15 g mustard',
     '',
     'Preparation:',
-    'Slice the potatoes thinly and layer them in a greased dish.',
-    'Season the cream with garlic and nutmeg, pour it over and top with the cheese.',
-    'Bake at 200 degrees for 45 minutes.',
+    'Boil potatoes, peel while warm and slice them.',
+    'Finely chop onions and mix in warm vegetable broth with vinegar, oil and mustard.',
+    'Pour the warm dressing over the sliced potatoes and let soak for about 30 minutes.',
+    'Garnish with fresh chives before serving.',
   ].join('\n'),
 };
 
@@ -160,7 +166,7 @@ export function RecipesView({
             />
           </TextField>
         </Card.Content>
-        <Card.Footer className="justify-between gap-3 bg-neutral-50 px-4 py-3 border-t border-neutral-100 flex flex-wrap">
+        <Card.Footer className="justify-between gap-3 bg-neutral-50 px-4 py-3 border-t border-neutral-100 flex flex-wrap items-center">
           <Button
             variant="ghost"
             size="sm"

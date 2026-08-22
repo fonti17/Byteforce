@@ -21,6 +21,61 @@ let backend: Backend | null = null;
 /** Last resort when both browser stores are unavailable — keeps the UI working. */
 const memoryStore = new Map<string, StoredRecipe>();
 
+export const DEFAULT_DEMO_RECIPES: StoredRecipe[] = [
+  {
+    id: 'demo-raclette',
+    createdAt: new Date('2026-08-20T10:00:00Z').toISOString(),
+    updatedAt: new Date('2026-08-20T10:00:00Z').toISOString(),
+    recipe: {
+      name: 'Schweizer Raclette',
+      description: 'Traditionelles Schweizer Raclette mit geschmolzenem Raclettekäse, Gschwellti und feinen Beilagen.',
+      servings: 4,
+      course: 'main',
+      diet: ['vegetarian', 'gluten_free'],
+      ingredients: [
+        { ingredient: 'Raclettekäse', quantity: 800, unit: 'g', category: 'Käse', note: 'in Scheiben' },
+        { ingredient: 'Kartoffeln', quantity: 1, unit: 'kg', category: 'Gemüse', note: 'festkochend' },
+        { ingredient: 'Cornichons', quantity: 200, unit: 'g', category: 'Konserven', note: null },
+        { ingredient: 'Silberzwiebeln', quantity: 150, unit: 'g', category: 'Konserven', note: null },
+        { ingredient: 'Raclette-Gewürz', quantity: 15, unit: 'g', category: 'Gewürze', note: null },
+      ],
+      steps: [
+        'Kartoffeln als Gschwellti im Wasser weich kochen und warmhalten.',
+        'Raclettekäse portionenweise in den Pfännchen schmelzen.',
+        'Über die heissen Kartoffeln geben und mit Raclette-Gewürz würzen.',
+        'Mit Cornichons und Silberzwiebeln servieren.',
+      ],
+      source: 'Swiss Tradition',
+    },
+  },
+  {
+    id: 'demo-sandwich',
+    createdAt: new Date('2026-08-21T11:00:00Z').toISOString(),
+    updatedAt: new Date('2026-08-21T11:00:00Z').toISOString(),
+    recipe: {
+      name: 'Apéro-Sandwiches',
+      description: 'Frische Baguette-Sandwiches mit Schinken, feinem Gruyère, knackigem Salat und Butter.',
+      servings: 4,
+      course: 'snack',
+      diet: [],
+      ingredients: [
+        { ingredient: 'Baguette', quantity: 2, unit: 'piece', category: 'Bäckerei', note: null },
+        { ingredient: 'Butter', quantity: 80, unit: 'g', category: 'Molkerei', note: null },
+        { ingredient: 'Beinschinken', quantity: 200, unit: 'g', category: 'Fleisch', note: null },
+        { ingredient: 'Gruyère', quantity: 150, unit: 'g', category: 'Käse', note: null },
+        { ingredient: 'Kopfsalat', quantity: 1, unit: 'piece', category: 'Gemüse', note: null },
+        { ingredient: 'Gurke', quantity: 1, unit: 'piece', category: 'Gemüse', note: null },
+      ],
+      steps: [
+        'Baguettes der Länge nach aufschneiden und mit Butter bestreichen.',
+        'Mit gewaschenem Salat, Beinschinken, Gruyère und Gurkenscheiben belegen.',
+        'In handliche Portionen schneiden und servieren.',
+      ],
+      source: 'Catering Classics',
+    },
+  },
+];
+
 function request<T>(source: IDBRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => {
     source.onsuccess = () => resolve(source.result);
@@ -46,7 +101,6 @@ function openDatabase(): Promise<IDBDatabase> {
     open.onerror = () => reject(open.error ?? new Error('IndexedDB could not be opened'));
     open.onblocked = () => reject(new Error('IndexedDB is blocked by another tab'));
   });
-  // A rejected promise must not be cached, or every later call fails too.
   dbPromise.catch(() => {
     dbPromise = null;
   });
@@ -105,10 +159,26 @@ export const recipeStore = {
         request<StoredRecipe[]>(store.getAll() as IDBRequest<StoredRecipe[]>)
       );
       backend = 'indexeddb';
+      const existingIds = new Set(records.map((r) => r.id));
+      const missingDemo = DEFAULT_DEMO_RECIPES.filter((d) => !existingIds.has(d.id));
+      if (missingDemo.length > 0) {
+        for (const demo of missingDemo) {
+          await withStore('readwrite', (store) => request(store.put(demo)));
+        }
+        return byNewestFirst([...records, ...missingDemo]);
+      }
       return byNewestFirst(records);
     } catch {
       backend = backend === 'memory' ? 'memory' : 'localstorage';
-      return byNewestFirst(backend === 'memory' ? [...memoryStore.values()] : readFallback());
+      const stored = backend === 'memory' ? [...memoryStore.values()] : readFallback();
+      const existingIds = new Set(stored.map((r) => r.id));
+      const missingDemo = DEFAULT_DEMO_RECIPES.filter((d) => !existingIds.has(d.id));
+      if (missingDemo.length > 0) {
+        const merged = [...stored, ...missingDemo];
+        writeFallback(merged);
+        return byNewestFirst(merged);
+      }
+      return byNewestFirst(stored);
     }
   },
 

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { recipeStore } from '../recipeStore';
+import { DEFAULT_DEMO_RECIPES, recipeStore } from '../recipeStore';
 import {
   extractRecipeLocally,
   isRecipeComplete,
@@ -29,7 +29,7 @@ function isStoredRecipe(value: unknown): value is StoredRecipe {
  * installed app keeps its recipes across reloads and offline starts.
  */
 export function useRecipes(options: RecipeOptions = {}) {
-  const [recipes, setRecipes] = useState<StoredRecipe[]>([]);
+  const [recipes, setRecipes] = useState<StoredRecipe[]>(DEFAULT_DEMO_RECIPES);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isImporting, setIsImporting] = useState(false);
   const [source, setSource] = useState<RecipeSource | null>(null);

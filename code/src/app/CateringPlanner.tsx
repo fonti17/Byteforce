@@ -5,7 +5,6 @@ import { useGathering, type PlannerStep } from '@/features/gathering/hooks/useGa
 import { useRecipes } from '@/features/recipes/hooks/useRecipes';
 import { useProjects } from '@/features/projects/hooks/useProjects';
 import { buildGatheringResult, getMissingRequiredFields } from '@/features/gathering/gatheringService';
-import { isRecipeComplete } from '@/features/recipes/recipeService';
 import type { GatheringData, GatheringField, GatheringResult } from '@/features/gathering/types';
 import type { Recipe } from '@/features/recipes/types';
 import type { StoredProject } from '@/features/projects/types';
@@ -221,12 +220,11 @@ export function CateringPlanner() {
     [openRecipeDetail, recipes]
   );
 
-  // A read that left a required value open — most often the serving count —
-  // asks for it right away, the way the brief does for part 1.
+  // A newly imported or typed recipe opens on its own detail screen so it can be checked right away.
   const handleImportRecipe = useCallback(
     async (text: string) => {
       const imported = await recipes.importText(text);
-      if (imported && !isRecipeComplete(imported.record.recipe)) {
+      if (imported) {
         openRecipeDetail(imported.record.id, 'recipes');
       }
     },

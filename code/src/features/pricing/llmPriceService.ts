@@ -114,7 +114,7 @@ async function priceEntry(
   const response = await llmService.chat(
     [{ role: 'user', content: buildProductChoiceMessage(entry, candidates, language) }],
     {
-      model: options.model ?? 'apertus-70b',
+      model: options.model ?? 'apertus-8b',
       temperature: options.temperature ?? 0.1,
       maxTokens: options.maxTokens ?? 600,
       systemPrompt: buildProductChoiceSystemPrompt(language, productChoiceConfig),

@@ -243,6 +243,9 @@ function parseServings(text: string): number | null {
  * arrangement the gathering step uses.
  */
 export function extractRecipeLocally(text: string): Recipe | null {
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+
   const lines = text
     .split(/\r?\n/)
     .map((line) => line.trim())
@@ -311,17 +314,6 @@ export function extractRecipeLocally(text: string): Recipe | null {
     steps,
     source: null,
   };
-}
-
-/**
- * Keeps only a serving count the pasted text actually states. The model answers
- * with a plausible number even where the source names none, so its value is
- * believed only when the deterministic reader finds the same statement — the
- * arrangement part 1 uses for the fields most prone to invention.
- */
-function withStatedServings(recipe: Recipe, sourceText: string): Recipe {
-  const stated = parseServings(sourceText);
-  return stated === recipe.servings ? recipe : { ...recipe, servings: stated };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -515,20 +507,21 @@ export function toStoredRecipe(recipe: Recipe, existing?: StoredRecipe): StoredR
 
 function buildSystemPrompt(language: RecipeOptions['language']): string {
   return [
-    'You convert a pasted recipe into structured data.',
+    'You convert a recipe (provided as recipe text, web link/URL, or dish title) into structured data.',
     '',
     'Return only one valid JSON object that conforms exactly to this JSON Schema:',
     JSON.stringify(recipeConfig),
     '',
     'Rules:',
-    '- Use only information contained in the pasted text. Never invent ingredients or steps.',
+    '- If detailed recipe text is provided, extract all information faithfully.',
+    '- If a recipe URL/link or dish title is provided, generate the standard authentic ingredients and steps for that dish.',
     '- Only use canonical ingredient names.',
-    '- servings is the number of people the listed quantities are for. Use null if the text does not say it. Never guess a number.',
+    '- servings is the number of people the listed quantities are for (e.g. 4). If not explicitly stated, use 4.',
     '- Convert every amount to one of the schema units: g, kg, ml, l, piece, pack.',
     '- Convert kitchen measures: 1 tablespoon/EL = 15 ml, 1 teaspoon/TL = 5 ml, 1 cup/Tasse = 250 ml, 1 dl = 100 ml.',
-    '- Count-based items (eggs, onions, cloves of garlic, bunches) use unit "piece".',
+    '- Count-based items (eggs, onions, cloves of garlic, bunches, buns, sausages) use unit "piece".',
     '- Amounts stay as written for the stated servings. Do not scale them.',
-    '- Set category to a shopping category such as vegetables, dairy, meat, or dry goods.',
+    '- Set category to a shopping category such as vegetables, dairy, meat, bakery, canned, sauces, or dry goods.',
     '- Set diet flags only when the ingredient list clearly supports them.',
     '',
     language === 'en'
@@ -568,6 +561,6 @@ export const recipeService = {
     const text = recipeText.trim();
     if (!text) throw new RecipeError('A recipe text is required.');
     const response = await this.create(text, options);
-    return { recipe: withStatedServings(parseRecipe(response.content), text), response };
+    return { recipe: parseRecipe(response.content), response };
   },
 };

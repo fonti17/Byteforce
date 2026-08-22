@@ -80,9 +80,13 @@ export function useCateringPlan(options: CateringPlanOptions = {}) {
 
       const pricingStartedAt = performance.now();
       setPricingProgress({ completed: 0, total: basePlan.shoppingList.length });
+      const pricingModel =
+        recipes.length > 0 || optionsRef.current.onlyOwnRecipes
+          ? 'apertus-8b'
+          : optionsRef.current.model ?? 'apertus-8b';
       const pricedPlan = await llmPriceService.enrich(basePlan, {
         language: optionsRef.current.language,
-        model: optionsRef.current.model,
+        model: pricingModel,
         onProgress: (completed, total) => setPricingProgress({ completed, total }),
       });
       console.info(
