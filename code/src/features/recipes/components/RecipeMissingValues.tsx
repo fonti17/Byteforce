@@ -151,7 +151,10 @@ function NameControl({ t, onAnswer }: { t: Strings; onAnswer: (patch: Partial<Re
         onChange={setName}
         className="min-w-0 flex-1"
       >
-        <Input placeholder={t.recipeNameLabel} />
+        <Input
+          placeholder={t.recipeNameLabel}
+          className="rounded-md border border-neutral-200 bg-neutral-50/60 px-3 py-2 text-sm text-neutral-900 outline-none focus:bg-white focus:border-primary focus:ring-1 focus:ring-primary w-full transition-colors"
+        />
       </TextField>
       <Button isDisabled={!isValid} onPress={() => onAnswer({ name: name.trim() })}>
         {t.send}

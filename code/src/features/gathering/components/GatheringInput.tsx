@@ -170,7 +170,7 @@ export function GatheringInput({
             <div className="flex items-center gap-2">
               <Input
                 placeholder={t.freeTextPlaceholder}
-                className="flex-1 rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                className="flex-1 rounded-md border border-neutral-200 bg-neutral-50/60 px-3 py-2 text-sm outline-none focus:bg-white focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
               />
               <Button
                 variant="outline"

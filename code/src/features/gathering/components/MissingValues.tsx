@@ -163,7 +163,7 @@ export function MissingValues({
                   value={contextDraft}
                   onChange={(e) => setContextDraft(e.target.value)}
                   rows={4}
-                  className="w-full resize-none rounded-md border border-neutral-300 bg-white p-3 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                  className="w-full resize-none rounded-md border border-neutral-200 bg-neutral-50/60 p-3 text-sm focus:bg-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
                   placeholder={t.contextPlaceholder}
                 />
               </TextField>

@@ -352,10 +352,14 @@ export function CateringPlanner() {
               <Button
                 variant="outline"
                 size="sm"
-                className="font-medium text-xs rounded border-neutral-300 text-neutral-700 hover:border-primary hover:text-primary transition-colors flex items-center gap-1.5"
+                aria-label={t.projectsOpen}
+                className="font-medium text-xs rounded border-neutral-300 text-neutral-700 hover:border-primary hover:text-primary transition-colors flex items-center gap-1.5 px-2 sm:px-3"
                 onPress={() => openProjects(step)}
               >
-                <span>{t.projectsOpen}</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z" />
+                </svg>
+                <span className="hidden sm:inline">{t.projectsOpen}</span>
                 {projects.projects.length > 0 ? (
                   <span className="rounded bg-neutral-200 px-1.5 py-0.5 text-[10px] font-bold text-neutral-800 tabular-nums">
                     {projects.projects.length}

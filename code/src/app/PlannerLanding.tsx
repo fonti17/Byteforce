@@ -130,7 +130,7 @@ export function PlannerLanding({
                 onChange={(e) => setTargetMarginStr(e.target.value)}
                 placeholder={t.targetMarginPlaceholder}
                 disabled={isAnalysing}
-                className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                className="w-full rounded-md border border-neutral-200 bg-neutral-50/60 px-3 py-2 text-sm text-neutral-900 focus:bg-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
               />
               <span className="text-xs text-neutral-500 mt-0.5">
                 {t.targetMarginHelp}
@@ -149,7 +149,7 @@ export function PlannerLanding({
             <TextArea
               placeholder={t.inputPlaceholder}
               rows={5}
-              className="resize-none rounded-md border border-neutral-300 p-3 text-sm focus:border-primary focus:ring-1 focus:ring-primary w-full outline-none"
+              className="resize-none rounded-md border border-neutral-200 bg-neutral-50/60 p-3 text-sm focus:bg-white focus:border-primary focus:ring-1 focus:ring-primary w-full outline-none transition-colors"
               onKeyDown={(event) => {
                 if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
                   handleSubmit();

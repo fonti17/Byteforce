@@ -127,7 +127,7 @@ export function RecipeEditor({ t, recipe, onSave, onCancel }: RecipeEditorProps)
         <TextField aria-label={t.recipeNameLabel} variant="secondary" value={name} onChange={setName}>
           <Input
             placeholder={t.recipeNameLabel}
-            className="rounded-md border border-neutral-300 px-3 py-2 text-sm text-neutral-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full"
+            className="rounded-md border border-neutral-200 bg-neutral-50/60 px-3 py-2 text-sm text-neutral-900 outline-none focus:bg-white focus:border-primary focus:ring-1 focus:ring-primary w-full transition-colors"
           />
         </TextField>
       </Field>
@@ -141,7 +141,7 @@ export function RecipeEditor({ t, recipe, onSave, onCancel }: RecipeEditorProps)
         >
           <TextArea
             rows={2}
-            className="resize-none rounded-md border border-neutral-300 p-2.5 text-sm text-neutral-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full"
+            className="resize-none rounded-md border border-neutral-200 bg-neutral-50/60 p-2.5 text-sm text-neutral-900 outline-none focus:bg-white focus:border-primary focus:ring-1 focus:ring-primary w-full transition-colors"
           />
         </TextField>
       </Field>
@@ -156,7 +156,7 @@ export function RecipeEditor({ t, recipe, onSave, onCancel }: RecipeEditorProps)
         >
           <Input
             inputMode="numeric"
-            className="rounded-md border border-neutral-300 px-3 py-2 text-sm font-semibold text-neutral-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full"
+            className="rounded-md border border-neutral-200 bg-neutral-50/60 px-3 py-2 text-sm font-semibold text-neutral-900 outline-none focus:bg-white focus:border-primary focus:ring-1 focus:ring-primary w-full transition-colors"
           />
         </TextField>
       </Field>
@@ -166,7 +166,7 @@ export function RecipeEditor({ t, recipe, onSave, onCancel }: RecipeEditorProps)
           aria-label={t.recipeCourseLabel}
           value={course ?? ''}
           onChange={(event) => setCourse((event.target.value || null) as RecipeCourse | null)}
-          className="w-fit cursor-pointer rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+          className="w-fit cursor-pointer rounded-md border border-neutral-200 bg-neutral-50/60 px-3 py-2 text-sm text-neutral-900 outline-none focus:bg-white focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
         >
           <option value="">{t.recipeCourseNone}</option>
           {RECIPE_COURSES.map((value) => (
@@ -209,14 +209,14 @@ export function RecipeEditor({ t, recipe, onSave, onCancel }: RecipeEditorProps)
                 <Input
                   inputMode="decimal"
                   placeholder="0"
-                  className="rounded-md border border-neutral-300 px-2 py-1.5 text-sm font-semibold text-neutral-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full"
+                  className="rounded-md border border-neutral-200 bg-neutral-50/60 px-2 py-1.5 text-sm font-semibold text-neutral-900 outline-none focus:bg-white focus:border-primary focus:ring-1 focus:ring-primary w-full transition-colors"
                 />
               </TextField>
               <select
                 aria-label={t.recipeUnitLabel}
                 value={entry.unit}
                 onChange={(event) => updateIngredient(entry.key, { unit: event.target.value })}
-                className="w-24 shrink-0 cursor-pointer rounded-md border border-neutral-300 bg-white px-2 py-1.5 text-sm text-neutral-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                className="w-24 shrink-0 cursor-pointer rounded-md border border-neutral-200 bg-neutral-50/60 px-2 py-1.5 text-sm text-neutral-900 outline-none focus:bg-white focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
               >
                 {CATERING_UNITS.map((unit) => (
                   <option key={unit} value={unit}>
@@ -233,7 +233,7 @@ export function RecipeEditor({ t, recipe, onSave, onCancel }: RecipeEditorProps)
               >
                 <Input
                   placeholder={t.recipeIngredientLabel}
-                  className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm text-neutral-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full"
+                  className="rounded-md border border-neutral-200 bg-neutral-50/60 px-3 py-1.5 text-sm text-neutral-900 outline-none focus:bg-white focus:border-primary focus:ring-1 focus:ring-primary w-full transition-colors"
                 />
               </TextField>
               <Button
@@ -274,7 +274,7 @@ export function RecipeEditor({ t, recipe, onSave, onCancel }: RecipeEditorProps)
         >
           <TextArea
             rows={5}
-            className="resize-none rounded-md border border-neutral-300 p-2.5 text-sm text-neutral-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full"
+            className="resize-none rounded-md border border-neutral-200 bg-neutral-50/60 p-2.5 text-sm text-neutral-900 outline-none focus:bg-white focus:border-primary focus:ring-1 focus:ring-primary w-full transition-colors"
           />
         </TextField>
       </Field>

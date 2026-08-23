@@ -153,7 +153,7 @@ export function RecipesView({
             <TextArea
               placeholder={t.recipeInputPlaceholder}
               rows={5}
-              className="resize-none rounded-md border border-neutral-300 p-3 text-sm focus:border-primary focus:ring-1 focus:ring-primary w-full outline-none"
+              className="resize-none rounded-md border border-neutral-200 bg-neutral-50/60 p-3 text-sm focus:bg-white focus:border-primary focus:ring-1 focus:ring-primary w-full outline-none transition-colors"
               onKeyDown={(event) => {
                 if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) submit();
               }}
