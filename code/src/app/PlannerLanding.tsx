@@ -19,8 +19,8 @@ import type { Language, Strings } from '@/shared/i18n/strings';
  * the brief has something to report and the question walk has something to ask.
  */
 const EXAMPLE_REQUEST: Record<Language, string> = {
-  de: 'Wir planen ein Firmenessen für ca. 80 Personen. Es soll ein Schweizer Buffet mit Wein und Bier geben, Budget maximal 6000 CHF. Es gibt 5 Vegetarier und eine Person mit Glutenunverträglichkeit.',
-  en: 'We are planning a company dinner for about 80 people. A Swiss buffet with wine and beer, budget up to 6000 CHF. Five guests are vegetarian and one is gluten intolerant.',
+  de: 'Hey Cedi, wie zuvor mitgeteilt findet nächsten Samstag (Datum: 29.08.2026) der Volleyball Cup Viertelfinal bei uns in Oberdiessbach statt. Nach Abklärungen mit der Feuerpolizei dürfen wir etwa 250Leute in die Halle lassen. Wir haben kein festes Budget da wir annehmen, dass wir Umsatz machen werden. Merci für das Organisieren vom Catering und bis bald.\nGruess Oli',
+  en: 'Hey Cedi, as previously communicated, the Volleyball Cup Quarterfinal will take place next Saturday (Date: 29.08.2026) at our venue in Oberdiessbach. According to fire safety regulations, we can host about 250 people in the hall. We don\'t have a fixed budget since we expect to generate revenue. Thanks for organizing the catering and see you soon.\nBest regards, Oli',
 };
 
 /** The landing page shows the most recent recipes only; the rest live one tap away. */

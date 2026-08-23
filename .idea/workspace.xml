@@ -5,10 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="2d1fa47a-5fad-4b23-b6c2-780f3ec119b1" name="Changes" comment="feat: reactivity changes and lighter textfields">
-      <change afterPath="$PROJECT_DIR$/code/public/images/cAItering.png" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Readme.md" beforeDir="false" afterPath="$PROJECT_DIR$/Readme.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/code/src/app/CateringPlanner.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/code/src/app/CateringPlanner.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/code/src/app/PlannerLanding.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/code/src/app/PlannerLanding.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/code/src/features/gathering/gatheringService.ts" beforeDir="false" afterPath="$PROJECT_DIR$/code/src/features/gathering/gatheringService.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -120,7 +119,7 @@
     "RunOnceActivity.typescript.service.memoryLimit.init": "true",
     "codeWithMe.voiceChat.enabledByDefault": "false",
     "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
-    "git-widget-placeholder": "main",
+    "git-widget-placeholder": "feature/demo",
     "javascript.preferred.runtime.type.id": "node",
     "junie.onboarding.icon.badge.shown": "true",
     "node.js.detected.package.eslint": "true",

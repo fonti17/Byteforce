@@ -203,10 +203,21 @@ export function extractDeterministicUpdates(
   const normalized = text.toLocaleLowerCase('de-CH');
   const updates: GatheringUpdates = {};
 
-  if (/\b(teamessen|teamevent)\b/u.test(normalized)) updates.eventType = 'team_event';
+  if (/\b(teamessen|teamevent|volleyball|turnier|cup|sport|verein)\b/u.test(normalized)) updates.eventType = 'team_event';
   else if (/\b(firmenessen|geschäftsanlass|geschaeftsanlass)\b/u.test(normalized)) updates.eventType = 'business';
   else if (expectedField === 'eventType' && /\b(privat|privater anlass)\b/u.test(normalized)) updates.eventType = 'private';
 
+  // 1. Numeric dot date: DD.MM.YYYY or DD.MM.
+  const dotDateMatch = normalized.match(/\b([0-3]?\d)\.([01]?\d)\.(?:(19\d{2}|20\d{2})\b)?/u);
+  if (dotDateMatch) {
+    const day = Number(dotDateMatch[1]);
+    const month = Number(dotDateMatch[2]);
+    if (day >= 1 && day <= 31) updates['date.day'] = day;
+    if (month >= 1 && month <= 12) updates['date.month'] = month;
+    if (dotDateMatch[3]) updates['date.year'] = Number(dotDateMatch[3]);
+  }
+
+  // 2. Named month date: DD. Month YYYY
   const monthEntry = Object.entries(MONTHS).find(([name]) => normalized.includes(name));
   if (monthEntry) {
     updates['date.month'] = monthEntry[1];
@@ -215,9 +226,10 @@ export function extractDeterministicUpdates(
   }
 
   const yearMatch = normalized.match(/\b(19|20)\d{2}\b/u);
-  if (yearMatch) updates['date.year'] = Number(yearMatch[0]);
+  if (yearMatch && updates['date.year'] === undefined) updates['date.year'] = Number(yearMatch[0]);
 
-  const participantMatch = normalized.match(/\b(?:etwa|ca\.?|circa|ungefähr)?\s*(\d+)\s*(?:personen|leute|teilnehmende|gäste)\b/u);
+  // Support "250Leute" or "250 Leute" or "ca. 250 Personen"
+  const participantMatch = normalized.match(/(?:etwa|ca\.?|circa|ungefähr)?\s*(\d+)\s*(?:personen|leute|teilnehmende|gäste)\b/u);
   if (participantMatch) updates.participantCount = Number(participantMatch[1]);
 
   if (/\b(frühstück|fruehstueck|breakfast)\b/u.test(normalized)) updates.meal = 'breakfast';
@@ -364,6 +376,7 @@ function buildSystemPrompt(): string {
     'Rules:',
     '- Prefer expectedField when it is present; interpret a short answer as the answer to that field.',
     '- Extract only new or explicitly corrected values. Do not repeat unrelated currentState values.',
+    '- Extract dates in DD.MM.YYYY format (e.g. "29.08.2026") into date.day=29, date.month=8, date.year=2026.',
     '- Convert German month names to month numbers.',
     '- Never invent date.year. Omit it unless the user explicitly states a year.',
     '- "Teamessen" and "Teamevent" map to eventType="team_event". "Firmenessen" maps to eventType="business".',
