@@ -239,7 +239,7 @@ Byteforce/
 
 Detailed architectural decisions, prompt contracts, and dataflow diagrams are available in the official jury documentation:
 
-* [Technische Informationen für die Jury](file:///home/fonti/Work/byteforce/documentation/technische_informationen.md)
+* [Technische Informationen für die Jury](./documentation/technische_informationen.md)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

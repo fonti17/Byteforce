@@ -17,7 +17,6 @@ import { RecipeDetailView } from '@/features/recipes/components/RecipeDetailView
 import { RecipesView } from '@/features/recipes/components/RecipesView';
 import { ProjectsView } from '@/features/projects/components/ProjectsView';
 import { openQuestions, type QuestionId } from '@/features/gathering/questions';
-import { ProdegaLogo } from '@/shared/ui/ProdegaLogo';
 import { strings, type Language } from '@/shared/i18n/strings';
 
 /**
@@ -305,11 +304,15 @@ export function CateringPlanner() {
             onClick={handleRestart}
             aria-label={t.backToStart}
             title={t.backToStart}
-            className="flex items-center gap-3 rounded transition-opacity hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            className="flex items-center gap-2 sm:gap-2.5 rounded transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
-            <ProdegaLogo className="h-7 w-auto" />
+            <img
+              src="/images/cAItering.png"
+              alt="cAItering"
+              className="h-4 sm:h-5 w-auto object-contain"
+            />
             <span className="text-neutral-300">|</span>
-            <span className="text-sm font-bold tracking-tight text-neutral-800 uppercase">{t.brand}</span>
+            <span className="text-xs sm:text-sm font-bold tracking-tight text-neutral-800 uppercase">{t.brand}</span>
           </button>
 
           <div className="flex items-center gap-2 sm:gap-3">

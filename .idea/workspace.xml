@@ -4,7 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="2d1fa47a-5fad-4b23-b6c2-780f3ec119b1" name="Changes" comment="docs: update info about recipe parsing" />
+    <list default="true" id="2d1fa47a-5fad-4b23-b6c2-780f3ec119b1" name="Changes" comment="feat: reactivity changes and lighter textfields">
+      <change afterPath="$PROJECT_DIR$/code/public/images/cAItering.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Readme.md" beforeDir="false" afterPath="$PROJECT_DIR$/Readme.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/code/src/app/CateringPlanner.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/code/src/app/CateringPlanner.tsx" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -22,41 +27,41 @@
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "fonti17"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;fonti17&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "git@github.com:fonti17/Byteforce.git",
-    "accountId": "8b483c23-cd1e-4ff1-9832-c8c96250ad67"
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;git@github.com:fonti17/Byteforce.git&quot;,
+    &quot;accountId&quot;: &quot;8b483c23-cd1e-4ff1-9832-c8c96250ad67&quot;
   }
-}]]></component>
+}</component>
   <component name="McpProjectServerCommands">
     <commands />
     <urls />
   </component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="1.0000000700049887" />
-      <entry key="MS500" value="1.0486242894265019" />
-      <entry key="S2" value="2.2279371468136118" />
-      <entry key="S5" value="4.174249349126137" />
-      <entry key="S10" value="5.664163639416833" />
-      <entry key="S30" value="13.488399670464617" />
-      <entry key="S60" value="36.74530227751604" />
-      <entry key="M2" value="82.0969380595164" />
-      <entry key="M5" value="149.29859816921405" />
-      <entry key="M10" value="188.10789444943276" />
-      <entry key="M15" value="205.10301396867712" />
-      <entry key="M30" value="226.70439028812416" />
-      <entry key="H1" value="241.94111218002465" />
-      <entry key="H2" value="252.44474857694928" />
-      <entry key="H4" value="259.04258946722126" />
-      <entry key="D1" value="265.5586625317766" />
-      <entry key="W1" value="266.79095146565265" />
+      <entry key="MS100" value="1.5716182184665803" />
+      <entry key="MS500" value="4.307335202561866" />
+      <entry key="S2" value="12.62658978106338" />
+      <entry key="S5" value="21.724921515345535" />
+      <entry key="S10" value="27.52527115493376" />
+      <entry key="S30" value="32.919964808347174" />
+      <entry key="S60" value="34.69421049096454" />
+      <entry key="M2" value="35.75351608731724" />
+      <entry key="M5" value="36.64179799454141" />
+      <entry key="M10" value="37.366259264989175" />
+      <entry key="M15" value="37.87781704316512" />
+      <entry key="M30" value="38.84147126581557" />
+      <entry key="H1" value="40.90352336381645" />
+      <entry key="H2" value="58.554672128689596" />
+      <entry key="H4" value="111.63664402456502" />
+      <entry key="D1" value="261.63744827717943" />
+      <entry key="W1" value="309.1417529674447" />
     </decayedCancelled>
     <decayedSelected>
       <entry key="MS100" value="0.0" />
@@ -78,29 +83,29 @@
       <entry key="W1" value="0.0" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="0.9726550155036511" />
-      <entry key="MS500" value="1.0428411039906358" />
-      <entry key="S2" value="2.224654002949312" />
-      <entry key="S5" value="4.171254773964169" />
-      <entry key="S10" value="5.661954376221444" />
-      <entry key="S30" value="13.486824464969954" />
-      <entry key="S60" value="36.74334303956042" />
-      <entry key="M2" value="82.09476159642855" />
-      <entry key="M5" value="149.29697482597294" />
-      <entry key="M10" value="188.1068400282226" />
-      <entry key="M15" value="205.1022337508205" />
-      <entry key="M30" value="226.70394915009987" />
-      <entry key="H1" value="241.94087382765008" />
-      <entry key="H2" value="252.44462345833713" />
-      <entry key="H4" value="259.04252507729046" />
-      <entry key="D1" value="265.5586515021619" />
-      <entry key="W1" value="266.7909498819858" />
+      <entry key="MS100" value="1.4728948937125972" />
+      <entry key="MS500" value="4.249465516245663" />
+      <entry key="S2" value="12.583259032999267" />
+      <entry key="S5" value="21.694504570846252" />
+      <entry key="S10" value="27.505850154418052" />
+      <entry key="S30" value="32.91201779083278" />
+      <entry key="S60" value="34.68986335419616" />
+      <entry key="M2" value="35.75119373182146" />
+      <entry key="M5" value="36.64081739378504" />
+      <entry key="M10" value="37.365755030590606" />
+      <entry key="M15" value="37.8774762718438" />
+      <entry key="M30" value="38.84129760565404" />
+      <entry key="H1" value="40.90343420162809" />
+      <entry key="H2" value="58.55461887055515" />
+      <entry key="H4" value="111.63660438636437" />
+      <entry key="D1" value="261.6374355296843" />
+      <entry key="W1" value="309.1417508681538" />
     </decayedShown>
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 3,
-  "fromUser": false
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 3,
+  &quot;fromUser&quot;: false
+}</component>
   <component name="ProjectId" id="3IHocXOAsv0yc6o9qYdio8VpSVV" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -126,9 +131,14 @@
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
     "to.speed.mode.migration.done": "true",
-    "ts.external.directory.path": "/home/fonti/Work/byteforce/code/node_modules/typescript/lib"
+    "ts.external.directory.path": "/home/fonti/Downloads/WebStorm-2026.2.1 (2)/WebStorm-262.9437.145/plugins/javascript-plugin/jsLanguageServicesImpl/external"
   }
 }]]></component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/code/public/images" />
+    </key>
+  </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
@@ -185,7 +195,15 @@
       <option name="project" value="LOCAL" />
       <updated>1787444488608</updated>
     </task>
-    <option name="localTasksCounter" value="6" />
+    <task id="LOCAL-00006" summary="feat: reactivity changes and lighter textfields">
+      <option name="closed" value="true" />
+      <created>1787445926312</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1787445926312</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -209,6 +227,7 @@
     <MESSAGE value="feat(projects): add project management with IndexedDB and fallback support&#10;&#10;Introduce project persistence via `indexedDB` with graceful degradation to `localStorage` or in-memory storage. Includes CRUD operations, project import/export, and integration with the catering planner UI for saving, loading, and managing projects." />
     <MESSAGE value="feat(recipes): add default demo recipes and enhance recipe handling&#10;&#10;Introduced `DEFAULT_DEMO_RECIPES` for initial demo content and integrated them into the recipe store with fallback support. Improved recipe import behavior, handling of empty texts, and default settings for serving sizes. Updated recipe parsing logic and adjusted models in pricing service for consistency." />
     <MESSAGE value="docs: update info about recipe parsing" />
-    <option name="LAST_COMMIT_MESSAGE" value="docs: update info about recipe parsing" />
+    <MESSAGE value="feat: reactivity changes and lighter textfields" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: reactivity changes and lighter textfields" />
   </component>
 </project>
