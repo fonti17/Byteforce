@@ -54,28 +54,33 @@ export function useCateringPlan(options: CateringPlanOptions = {}) {
       const recipes = optionsRef.current.recipes ?? [];
       let basePlan: CateringPlan;
       let planSource: PlanSource = 'model';
-
-      const planningStartedAt = performance.now();
-      try {
-        const turn = await cateringPlanService.plan(input, optionsRef.current);
-        basePlan = turn.plan;
-        const usage = turn.response.usage;
-        console.info(
-          `[catering-plan] Apertus ${turn.response.model ?? 'unknown'} completed in ` +
-          `${Math.round(performance.now() - planningStartedAt)} ms` +
-          (usage
-            ? ` (prompt ${usage.promptTokens ?? '?'} / completion ${usage.completionTokens ?? '?'} tokens)`
-            : '')
-        );
-      } catch (planningError) {
-        console.info(
-          `[catering-plan] Apertus failed after ${Math.round(performance.now() - planningStartedAt)} ms`
-        );
-        // Recipe quantities are deterministic, so they can still form the plan
-        // when Apertus is unavailable. Pricing happens once after this branch.
-        if (recipes.length === 0) throw planningError;
+      if (optionsRef.current.onlyOwnRecipes && recipes.length > 0) {
+        // Fast deterministic recipe calculation without LLM latency or errors
         basePlan = buildPlanFromRecipes(recipes, gatheringResult);
-        planSource = 'local';
+        planSource = 'model';
+      } else {
+        const planningStartedAt = performance.now();
+        try {
+          const turn = await cateringPlanService.plan(input, optionsRef.current);
+          basePlan = turn.plan;
+          const usage = turn.response.usage;
+          console.info(
+            `[catering-plan] Apertus ${turn.response.model ?? 'unknown'} completed in ` +
+            `${Math.round(performance.now() - planningStartedAt)} ms` +
+            (usage
+              ? ` (prompt ${usage.promptTokens ?? '?'} / completion ${usage.completionTokens ?? '?'} tokens)`
+              : '')
+          );
+        } catch (planningError) {
+          console.info(
+            `[catering-plan] Apertus failed after ${Math.round(performance.now() - planningStartedAt)} ms`
+          );
+          // Recipe quantities are deterministic, so they can still form the plan
+          // when Apertus is unavailable. Pricing happens once after this branch.
+          if (recipes.length === 0) throw planningError;
+          basePlan = buildPlanFromRecipes(recipes, gatheringResult);
+          planSource = 'local';
+        }
       }
 
       const pricingStartedAt = performance.now();

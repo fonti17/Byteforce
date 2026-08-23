@@ -6,12 +6,23 @@ export function extractJsonObject(content: string): Record<string, unknown> | nu
   const firstBrace = content.indexOf('{');
   const lastBrace = content.lastIndexOf('}');
   if (firstBrace === -1 || lastBrace <= firstBrace) return null;
+
+  const rawJson = content.slice(firstBrace, lastBrace + 1);
   try {
-    const parsed: unknown = JSON.parse(content.slice(firstBrace, lastBrace + 1));
+    const parsed: unknown = JSON.parse(rawJson);
     return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
       ? (parsed as Record<string, unknown>)
       : null;
   } catch {
-    return null;
+    try {
+      // Clean trailing commas before closing braces/brackets
+      const cleaned = rawJson.replace(/,\s*([}\]])/g, '$1');
+      const parsed: unknown = JSON.parse(cleaned);
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+        ? (parsed as Record<string, unknown>)
+        : null;
+    } catch {
+      return null;
+    }
   }
 }

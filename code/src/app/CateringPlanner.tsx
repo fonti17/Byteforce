@@ -71,7 +71,7 @@ export function CateringPlanner() {
       language,
       model: isOnlyOwnActive ? 'apertus-8b' : 'apertus-70b',
       temperature: 0.2,
-      maxTokens: isOnlyOwnActive ? 800 : 1800,
+      maxTokens: 1800,
       recipes: selectedRecipes,
       onlyOwnRecipes: isOnlyOwnActive,
     }),

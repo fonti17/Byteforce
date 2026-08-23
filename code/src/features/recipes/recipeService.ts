@@ -465,8 +465,9 @@ export function mergeRecipesIntoPlan(
  */
 export function buildPlanFromRecipes(recipes: Recipe[], result: GatheringResult): CateringPlan {
   const contribution = recipeContribution(recipes, result.participantCount);
+  const title = recipes.map((r) => r.name).join(' & ');
   return {
-    menu: { name: '', items: contribution.menuItems },
+    menu: { name: title, items: contribution.menuItems },
     shoppingList: contribution.shoppingList,
   };
 }

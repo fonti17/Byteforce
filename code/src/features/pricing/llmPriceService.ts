@@ -13,7 +13,7 @@ import type {
   PricedShoppingListEntry,
   ShoppingListEntry,
 } from '@/features/catering-plan/types';
-import type { LLMRequestOptions } from '@/shared/llm/types';
+import type { LLMRequestOptions, LLMResponse } from '@/shared/llm/types';
 import type { CatalogCandidates } from './transgourmet/types';
 
 /**
@@ -111,19 +111,39 @@ async function priceEntry(
     );
   }
 
-  const response = await llmService.chat(
-    [{ role: 'user', content: buildProductChoiceMessage(entry, candidates, language) }],
-    {
-      model: options.model ?? 'apertus-8b',
-      temperature: options.temperature ?? 0.1,
-      maxTokens: options.maxTokens ?? 600,
-      systemPrompt: buildProductChoiceSystemPrompt(language, productChoiceConfig),
-      signal,
-      customHeaders: options.customHeaders,
-      extraBody: options.extraBody,
-      useProxy: options.useProxy,
-    }
-  );
+  let response: LLMResponse;
+  const primaryModel = options.model ?? 'apertus-8b';
+  try {
+    response = await llmService.chat(
+      [{ role: 'user', content: buildProductChoiceMessage(entry, candidates, language) }],
+      {
+        model: primaryModel,
+        temperature: options.temperature ?? 0.1,
+        maxTokens: options.maxTokens ?? 600,
+        systemPrompt: buildProductChoiceSystemPrompt(language, productChoiceConfig),
+        signal,
+        customHeaders: options.customHeaders,
+        extraBody: options.extraBody,
+        useProxy: options.useProxy,
+      }
+    );
+  } catch (primaryErr) {
+    console.warn('[llm-pricing] Primary pricing model failed, attempting fallback...', primaryErr);
+    const fallbackModel = primaryModel === 'apertus-8b' ? 'apertus-70b' : 'apertus-8b';
+    response = await llmService.chat(
+      [{ role: 'user', content: buildProductChoiceMessage(entry, candidates, language) }],
+      {
+        model: fallbackModel,
+        temperature: options.temperature ?? 0.1,
+        maxTokens: options.maxTokens ?? 600,
+        systemPrompt: buildProductChoiceSystemPrompt(language, productChoiceConfig),
+        signal,
+        customHeaders: options.customHeaders,
+        extraBody: options.extraBody,
+        useProxy: options.useProxy,
+      }
+    );
+  }
 
   const choice = parseProductChoice(response.content);
   const product =

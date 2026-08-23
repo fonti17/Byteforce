@@ -32,11 +32,14 @@ function buildSystemPrompt(
 ): string {
   if (onlyOwnRecipes && hasRecipes) {
     return [
-      'You are a professional catering helper.',
-      'The menu is already strictly defined by the user’s own chosen recipes.',
-      'Do NOT invent or add any new dishes or menu items.',
-      'Return empty menu.items array and empty shoppingList array (all dishes and ingredient amounts are calculated from the selected recipes).',
-      'Set menu.name to a fitting concise title for the chosen recipes.',
+      'You are a professional catering planner.',
+      'The event menu consists EXCLUSIVELY of the user’s supplied recipes.',
+      'Do NOT invent or add any new dishes or ingredients outside the supplied recipes.',
+      '',
+      'Your task:',
+      '1. Include each supplied recipe in menu.items with its name and a concise description.',
+      '2. Calculate realistic, total purchase quantities (shoppingList) for all event participants based on the ingredients of the supplied recipes.',
+      '3. Set menu.name to a fitting concise title for the chosen recipes.',
       '',
       'Return only one valid JSON object that conforms exactly to this JSON Schema:',
       JSON.stringify(cateringPlanConfig),
@@ -44,6 +47,7 @@ function buildSystemPrompt(
       language === 'en'
         ? 'Write all human-readable values in English.'
         : 'Write all human-readable values in German.',
+      'Use numeric quantities and one of the schema units: g, kg, ml, l, piece, pack.',
       'Do not wrap the JSON in markdown code fences.',
       'Do not ask further questions.',
     ].join('\n');
@@ -148,7 +152,34 @@ function parseCateringPlan(
  * application has already calculated, so it plans around them instead of
  * repeating them.
  */
-function describeRecipes(recipes: Recipe[], participantCount: number, language: CateringPlanOptions['language']): string {
+function describeRecipes(
+  recipes: Recipe[],
+  participantCount: number,
+  language: CateringPlanOptions['language'],
+  onlyOwnRecipes = false
+): string {
+  if (onlyOwnRecipes) {
+    return [
+      language === 'en'
+        ? `Calculate total ingredient quantities for all ${participantCount} guests based on these recipes:`
+        : `Berechne die gesamten Einkaufsmengen für alle ${participantCount} Gäste anhand dieser Rezepte:`,
+      JSON.stringify(
+        recipes.map((r) => ({
+          name: r.name,
+          baseServings: r.servings ?? 4,
+          ingredients: r.ingredients.map((i) => ({
+            ingredient: i.ingredient,
+            quantity: i.quantity,
+            unit: i.unit,
+            category: i.category,
+          })),
+        })),
+        null,
+        2
+      ),
+    ].join('\n\n');
+  }
+
   const contribution = recipeContribution(recipes, participantCount);
   return [
     language === 'en'
@@ -175,7 +206,7 @@ function buildPlanMessages(
   input: GatheringData | GatheringResult | CateringPlanInput,
   options: CateringPlanOptions
 ): { role: 'user'; content: string }[] {
-  const { language, recipes = [] } = options;
+  const { language, recipes = [], onlyOwnRecipes = false } = options;
   const { gatheringState, originalRequest } = resolvePlanInput(input);
   const participantCount = gatheringState.participantCount ?? 0;
   return [{
@@ -189,7 +220,7 @@ function buildPlanMessages(
         ? [`${language === 'en' ? 'Original request:' : 'Original-Anfrage:'}\n${originalRequest}`]
         : []),
       ...(recipes.length > 0 && participantCount > 0
-        ? [describeRecipes(recipes, participantCount, language)]
+        ? [describeRecipes(recipes, participantCount, language, onlyOwnRecipes)]
         : []),
     ].join('\n\n'),
   }];
@@ -212,7 +243,17 @@ export const cateringPlanService = {
     input: GatheringData | GatheringResult | CateringPlanInput,
     options: CateringPlanOptions = {}
   ): Promise<LLMResponse> {
-    return llmService.chat(buildPlanMessages(input, options), buildPlanRequestOptions(options));
+    const requestOptions = buildPlanRequestOptions(options);
+    try {
+      return await llmService.chat(buildPlanMessages(input, options), requestOptions);
+    } catch (primaryError) {
+      console.warn('[catering-plan] Primary model failed, trying fallback model...', primaryError);
+      const fallbackModel = requestOptions.model === 'apertus-8b' ? 'apertus-70b' : 'apertus-8b';
+      return await llmService.chat(buildPlanMessages(input, options), {
+        ...requestOptions,
+        model: fallbackModel,
+      });
+    }
   },
 
   /**
@@ -224,6 +265,7 @@ export const cateringPlanService = {
     options: CateringPlanOptions = {}
   ): Promise<CateringPlanTurn> {
     const recipes = options.recipes ?? [];
+    const onlyOwn = options.onlyOwnRecipes ?? false;
     const { gatheringState } = resolvePlanInput(input);
     const gatheringResult = gatheringState as GatheringResult;
     const response = await this.create(input, options);
@@ -231,7 +273,10 @@ export const cateringPlanService = {
       requireItems: recipes.length === 0,
     });
     return {
-      plan: mergeRecipesIntoPlan(parsed, recipes, gatheringResult.participantCount),
+      plan:
+        onlyOwn && parsed.shoppingList.length > 0
+          ? parsed
+          : mergeRecipesIntoPlan(parsed, recipes, gatheringResult.participantCount),
       response,
     };
   },
