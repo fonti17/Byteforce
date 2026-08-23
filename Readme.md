@@ -33,6 +33,7 @@
       <ul>
         <li><a href="#prerequisites">Prerequisites</a></li>
         <li><a href="#installation-and-running">Installation and Running</a></li>
+        <li><a href="#deployment-note">Deployment Note</a></li>
       </ul>
     </li>
     <li><a href="#usage-and-available-scripts">Usage and Available Scripts</a></li>
@@ -126,6 +127,23 @@ npm -v
    ```
    http://localhost:5173
    ```
+
+### Deployment Note
+
+The application is deployed as a Vercel project and is publicly reachable at **[byteforce-three.vercel.app](https://byteforce-three.vercel.app/)**. No installation is required to try it out — the PWA can be installed directly from the browser.
+
+Every push to `main` triggers an automatic build (`npm run build` with `code/` as the root directory), the static bundle is served from `dist/`, and all deployment behaviour is declared in [`code/vercel.json`](./code/vercel.json):
+
+| Route | Type | Purpose |
+|---|---|---|
+| `/api/transgourmet/search` | Serverless Function | Queries the live Prodega catalog server-side (`maxDuration: 60`) |
+| `/api/stoney/*` | Proxy rewrite | Forwards to `https://llm.stoney-cloud.com` (Apertus 8B) |
+| `/api/onprem/*` | Proxy rewrite | Forwards to `https://llm-api2.b.onprem.ai` (Apertus 70B) |
+| `/*` (everything else) | SPA fallback | Rewrites to `/index.html` for client-side routing |
+
+The two proxy rewrites mirror the Vite dev server proxy defined in `vite.config.ts`, so the exact same relative request paths work locally and in production. Their purpose is to avoid browser CORS restrictions against the LLM hosts — note that `VITE_*` keys are compiled into the client bundle and are therefore not secret.
+
+The environment variables from [`code/.env.example`](./code/.env.example) (model endpoints, API keys, default model) must be configured in the Vercel project settings; a redeploy is required for changes to take effect.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

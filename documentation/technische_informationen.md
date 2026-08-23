@@ -8,6 +8,12 @@
 
 Das Repository enthält unter `code/` die vollständige Frontend-Applikation inklusive Serverless-Proxy-Routen für den Prodega-Katalog. In den Ordnern `documentation/` und `presentation/` liegen Begleitmaterialien und Präsentationsunterlagen.
 
+### Link zur Live-Applikation
+
+[https://byteforce-three.vercel.app/](https://byteforce-three.vercel.app/)
+
+Die Applikation ist öffentlich erreichbar und kann ohne Installation direkt im Browser getestet werden. Details zum Deployment folgen im Abschnitt [Wie ist die Applikation deployed?](#wie-ist-die-applikation-deployed).
+
 ## Ausgangslage
 
 ### Worauf habt ihr euch fokussiert?
@@ -59,6 +65,23 @@ flowchart TD
         MathEngine --> FinalPlan["Fertiger Catering-Plan"]
     end
 ```
+
+### Wie ist die Applikation deployed?
+
+Die Applikation läuft als Vercel-Projekt unter [https://byteforce-three.vercel.app/](https://byteforce-three.vercel.app/). Jeder Push auf `main` löst automatisch einen Build aus (`npm run build` mit `code/` als Root-Verzeichnis), ausgeliefert wird das statische Bundle aus `dist/`. Da es sich um eine PWA handelt, lässt sich die Anwendung von dieser URL aus direkt auf Desktop und Mobile installieren.
+
+Das gesamte Deployment-Verhalten ist in `code/vercel.json` deklariert:
+
+| Route | Typ | Zweck |
+|---|---|---|
+| `/api/transgourmet/search` | Serverless Function | Fragt den Prodega-Live-Katalog serverseitig ab (`maxDuration: 60`) |
+| `/api/stoney/*` | Proxy-Rewrite | Weiterleitung an `https://llm.stoney-cloud.com` (Apertus 8B) |
+| `/api/onprem/*` | Proxy-Rewrite | Weiterleitung an `https://llm-api2.b.onprem.ai` (Apertus 70B) |
+| `/*` (alles Übrige) | SPA-Fallback | Rewrite auf `/index.html` für das clientseitige Routing |
+
+Die beiden Proxy-Rewrites bilden exakt den Vite-Dev-Proxy aus `vite.config.ts` nach. Dadurch funktionieren lokal und in der Produktion dieselben relativen Request-Pfade, ohne dass im Frontend zwischen den Umgebungen unterschieden werden muss. Zweck des Proxys ist die Umgehung der CORS-Restriktionen des Browsers gegenüber den LLM-Hosts; die `VITE_*`-Keys werden beim Build in das Client-Bundle kompiliert und sind daher nicht geheim. Die Katalogsuche läuft demgegenüber vollständig serverseitig in der Serverless Function.
+
+Die Umgebungsvariablen aus `code/.env.example` (Modell-Endpunkte, API-Keys, Default-Modell) werden in den Vercel-Projekteinstellungen hinterlegt; Änderungen werden erst mit einem erneuten Deployment wirksam.
 
 ## Implementation
 
