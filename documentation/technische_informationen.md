@@ -35,7 +35,7 @@ Die Anwendungslogik folgt einer Zwei-Phasen-Architektur: Das schnelle 8B-Modell 
 
 ### Wozu und wie werden diese eingesetzt?
 
-React und HeroUI bilden das Interface der modularen Single-Page-Applikation. Das Apertus 8B Modell extrahiert strukturierte Parameter wie Datum, Gästezahl und Budget aus Freitexten. Apertus 70B generiert basierend darauf Menüvorschläge und Einkaufslisten und übernimmt das Produkt-Matching im Prodega-Katalog. 
+React und HeroUI bilden das Interface der modularen Single-Page-Applikation. Das Apertus 8B Modell extrahiert strukturierte Parameter wie Datum, Gästezahl und Budget aus Freitexten und übernimmt das Produkt-Matching im Prodega-Katalog. Apertus 70B generiert basierend darauf Menüvorschläge und Einkaufslisten. 
 
 ```mermaid
 flowchart TD
@@ -54,7 +54,7 @@ flowchart TD
 
     subgraph S3["3. Bepreisung (Pricing)"]
         BasePlan --> ProdegaAPI["Prodega Live-Katalog (Serverless API)"]
-        ProdegaAPI --> LLM_Choice["Produkt-Matching (Apertus 70B)"]
+        ProdegaAPI --> LLM_Choice["Produkt-Matching (Apertus 8B)"]
         LLM_Choice --> MathEngine["Kosten- & Mengenkalkulation (CHF)"]
         MathEngine --> FinalPlan["Fertiger Catering-Plan"]
     end
@@ -75,11 +75,15 @@ Im Entwicklungsprozess haben wir zwei alternative Wege erprobt und verworfen: ei
 
 Nach der Erstellung der Einkaufsliste mit verschiedenen Produkten durch das Sprachmodel wollten wir die echten Preise dazu finden. Dafür haben wir einen Webscraper verwendet, der die Prodega-Seite durchsucht und jeweils einen Preis für jedes Produkt zurückgegeen hat. Da dies sehr langsam war haben wir noch eine sqlite-db zur Hilfe genommen, bei Start der Applikation wurde die ganze Website gescraped und alle Artikel ind die DB gespeichert. Auf diesen Weg konnten wir die Geschwindigkeit steigern, das Hauptproblem ist aber geblieben. Wir haben vom Sprachmodell manchmal zu generische und manchmal zu spezifische Bezeichnungen erhalten. Wir haben versucht 100 Produkte mit einem Match im Namen zu nehmen und diese aufgrund von Kategorisierung, Menge und roh-Material oder verarbeitetes Lebensmittel ein besseres Matching zu erhalten. All unsere Anstrengungen führten aber nicht zum Erfolg und es war mehr zufällig ob für schweizer Bier ein "Feldschlösschen" oder ein "Schweizer Apfelessig" vorgeschlagen wurde. Unsere verschiedenen Anstrengungen und bisherigen versuche sind alle auf dem recipe-db Branch zu finden.
 
-Ein weiteres Problem von uns ist die Zeit die das grosse Apertus Model benötigt um ein Menu zu erstellen und dessen Zutaten zusammenzusuchen. Aufgrund dessen haben wir uns mit Rezept-Datenbanken auseinandergesetzt, davon haben wir auch eine themealdb.com angebunden. Auf diese Weise haben wir gehofft das zuvor erwähnte Problem mit zu generisch oder zu spezifischen Produkten zu lösen und zusätzlich noch das Sprachmodel zu entlassten indem es nur noch das Gericht vorschlagen muss und wir die Zutaten dann von der Datenbank nehmen. Es sollte aber in beiden Fällen keine bis geringen Mehrwert bringen, weshalb wir uns dazu entschlossen haben diesen Weg nicht weiter zu verfolgen. Die gemachte Anbindung an die Datenbank und unsere versuche sind aber auf dem Branch recipedb weiterhin verfügbar.
+Ein weiteres Problem von uns ist die Zeit die das grosse Apertus Model benötigt um ein Menu zu erstellen und dessen Zutaten zusammenzusuchen. Aufgrund dessen haben wir uns mit Rezept-Datenbanken auseinandergesetzt, davon haben wir auch eine themealdb.com angebunden. Auf diese Weise haben wir gehofft das zuvor erwähnte Problem mit zu generisch oder zu spezifischen Produkten zu lösen und zusätzlich noch das Sprachmodel zu entlassten indem es nur noch das Gericht vorschlagen muss und wir die Zutaten dann von der Datenbank nehmen. Es sollte aber in beiden Fällen keine bis geringen Mehrwert bringen, weshalb wir uns dazu entschlossen haben diesen Weg nicht weiter zu verfolgen. Die gemachte Anbindung an die Datenbank und unsere versuche sind aber auf dem Branch recipe-db weiterhin verfügbar.
 
 Als Lösung für die Live-Preise sind wir dann wieder auf die Unterstützung des grossen Apertus Modells zurückgekommen und haben zusätzlich noch etwas Logik selbst eingebaut. Es wird für jeden Eintrag in der Einkaufsliste das Keyword ermittelt und mit diesem ein Fetch-Call auf Prodega gemacht (vorstellbar wie die Such-Funktion auf der Prodega Websie) das Resultat davon geben wir dann dem grossen Apertus Model, welches ermittelt welcher Eintrag am ehesten passt. Mit dieser Wahl wird dann wieder deterministisch die korrekte Menge und Preis berechnet. Das LLM nimmt bisher jeweils den billigsten der passenden Einträge von Prodega, sprich der Preis wird mit eingewichtet.
 
-Für das vervollständigen sowie Auslesen eines angegebenen Links haben wir erneut auf das kleine Model von Apertus gesetzt, da dies alle Anforderungen erfüllt und dabei präzise bleibt. Die Rezepte werden dann in einer indexDB gespeichert.
+Eigene Rezepte werden über einen Paste-Workflow hinzugefügt: Ein kopierter Rezepttext wird in der Rezeptverwaltung eingefügt und von Apertus 70B in das definierte Schema mit Name, Portionenzahl, Zutaten, Mengen und Zubereitungsschritten umgewandelt. Der Code validiert und normalisiert die Antwort, zum Beispiel indem «EL», «TL», «dl» und «kg» in unterstützte Einheiten überführt werden.
+
+Fehlen Rezeptname, Portionenzahl oder Zutaten, werden diese Angaben im Dialog oder Editor ergänzt und nicht automatisch erraten. Ist das Sprachmodell nicht erreichbar, verarbeitet ein lokaler Parser typische Texte mit «Zutaten»- und «Zubereitung»-Abschnitten.
+
+Das fertige Rezept wird lokal in IndexedDB gespeichert, mit localStorage und Arbeitsspeicher als Fallback. Bei der Auswahl für ein Event werden die Zutaten auf die Gästezahl skaliert und deterministisch mit der Einkaufsliste zusammengeführt.
 
 ### Was ist aus technischer Sicht besonders cool an eurer Lösung?
 
